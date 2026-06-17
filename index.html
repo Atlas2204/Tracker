@@ -1,0 +1,1205 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#2d6a4f">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SportLog">
+<title>SportLog</title>
+<script>
+const manifestData = {
+  name: "SportLog", short_name: "SportLog",
+  start_url: ".", display: "standalone",
+  background_color: "#f8f7f4", theme_color: "#2d6a4f", orientation: "portrait",
+  icons: [{ src: "data:image/svg+xml," + encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' rx='40' fill='%232d6a4f'/><text x='96' y='130' text-anchor='middle' font-size='110' font-family='Arial'>🏋️</text></svg>`), sizes: "192x192", type: "image/svg+xml" }]
+};
+const manifestBlob = new Blob([JSON.stringify(manifestData)], {type:'application/json'});
+const manifestUrl = URL.createObjectURL(manifestBlob);
+const manifestLink = document.createElement('link');
+manifestLink.rel = 'manifest'; manifestLink.href = manifestUrl;
+document.currentScript.parentNode.insertBefore(manifestLink, document.currentScript);
+</script>
+<style>
+:root {
+  --bg: #f8f7f4; --surface: #ffffff; --surface2: #f0ede8;
+  --accent: #2d6a4f; --accent2: #52b788; --accent-light: #d8f3dc;
+  --text: #1a1a1a; --text2: #6b6b6b; --text3: #a0a0a0;
+  --border: rgba(0,0,0,0.08); --border2: rgba(0,0,0,0.15);
+  --danger: #c0392b; --danger-light: #fdecea;
+  --warning: #e67e22;
+  --radius: 14px; --radius-sm: 8px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; max-width: 480px; margin: 0 auto; position: relative; overflow-x: hidden; }
+.screen { display: none; min-height: 100vh; padding-bottom: 80px; }
+.screen.active { display: block; }
+
+/* HEADER */
+.header { background: var(--surface); border-bottom: 0.5px solid var(--border2); padding: 16px 20px 12px; position: sticky; top: 0; z-index: 10; }
+.header-row { display: flex; align-items: center; justify-content: space-between; }
+.header h1 { font-size: 22px; font-weight: 600; color: var(--accent); letter-spacing: -0.5px; }
+.header-sub { font-size: 13px; color: var(--text2); margin-top: 2px; }
+.icon-btn { width: 38px; height: 38px; border: none; background: var(--accent-light); border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--accent); flex-shrink: 0; }
+.icon-btn:active { transform: scale(0.93); }
+.icon-btn svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* NAV */
+.nav { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; background: var(--surface); border-top: 0.5px solid var(--border2); display: flex; z-index: 20; padding-bottom: env(safe-area-inset-bottom, 0px); }
+.nav-btn { flex: 1; border: none; background: none; cursor: pointer; padding: 10px 0 8px; display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 10px; color: var(--text3); font-weight: 500; }
+.nav-btn svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.nav-btn.active { color: var(--accent); }
+.nav-btn:active { opacity: 0.7; }
+
+/* CALENDAR */
+.calendar-section { padding: 16px 16px 0; }
+.month-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.month-nav h2 { font-size: 17px; font-weight: 600; }
+.month-arrow { width: 32px; height: 32px; border-radius: 50%; border: 0.5px solid var(--border2); background: var(--surface); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; color: var(--text2); }
+.month-arrow:active { background: var(--surface2); }
+.weekdays { display: grid; grid-template-columns: repeat(7, 1fr); margin-bottom: 6px; }
+.weekday { text-align: center; font-size: 11px; font-weight: 600; color: var(--text3); padding: 4px 0; text-transform: uppercase; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+.cal-day { aspect-ratio: 1; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; cursor: pointer; position: relative; border: none; background: none; color: var(--text); }
+.cal-day:active { opacity: 0.7; }
+.cal-day.empty { pointer-events: none; }
+.cal-day.today { background: var(--accent-light); font-weight: 600; color: var(--accent); }
+.cal-day.selected { background: var(--accent); color: #fff; }
+.cal-day.has-entry::after { content: ''; width: 4px; height: 4px; border-radius: 50%; background: var(--accent2); position: absolute; bottom: 3px; }
+.cal-day.selected.has-entry::after { background: rgba(255,255,255,0.7); }
+/* checked = coché dans objectifs */
+.cal-day.checked-day { background: var(--accent-light); }
+.cal-day.checked-day.selected { background: var(--accent); }
+
+/* DAY PANEL */
+.day-panel { margin: 14px 16px 0; background: var(--surface); border-radius: var(--radius); border: 0.5px solid var(--border); overflow: hidden; }
+.day-panel-header { padding: 14px 16px; border-bottom: 0.5px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.day-panel-header h3 { font-size: 15px; font-weight: 600; }
+.day-panel-header .date-label { font-size: 12px; color: var(--text2); margin-top: 2px; }
+.day-empty { padding: 20px 16px; text-align: center; }
+.day-empty p { font-size: 14px; color: var(--text2); margin-bottom: 12px; }
+.day-session-content { padding: 12px 16px; }
+.session-text { font-size: 15px; line-height: 1.7; color: var(--text); white-space: pre-wrap; word-break: break-word; }
+.session-actions { display: flex; gap: 8px; padding: 10px 16px 14px; border-top: 0.5px solid var(--border); }
+
+/* BUTTONS */
+.btn { border: none; border-radius: var(--radius-sm); cursor: pointer; font-size: 14px; font-weight: 500; padding: 11px 16px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.btn:active { opacity: 0.75; transform: scale(0.98); }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-secondary { background: var(--surface2); color: var(--text); border: 0.5px solid var(--border2); }
+.btn-danger { background: var(--danger-light); color: var(--danger); }
+.btn-sm { font-size: 13px; padding: 8px 13px; }
+.btn-full { width: 100%; }
+.btn svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+
+/* MODAL */
+.modal-overlay { display: none; position: fixed; inset: 0; z-index: 100; background: rgba(0,0,0,0.45); align-items: flex-end; justify-content: center; }
+.modal-overlay.open { display: flex; }
+.modal { background: var(--surface); border-radius: var(--radius) var(--radius) 0 0; width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto; padding-bottom: env(safe-area-inset-bottom, 16px); }
+.modal-handle { width: 36px; height: 4px; background: var(--border2); border-radius: 2px; margin: 12px auto 4px; }
+.modal-header { padding: 12px 20px 14px; border-bottom: 0.5px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.modal-header h2 { font-size: 17px; font-weight: 600; }
+.modal-close { font-size: 20px; color: var(--text2); background: none; border: none; cursor: pointer; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
+.modal-close:active { background: var(--surface2); }
+.modal-body { padding: 16px 20px; }
+
+/* FORMS */
+.import-row { display: flex; gap: 8px; margin-bottom: 14px; }
+.import-row .btn { flex: 1; font-size: 12px; padding: 9px 8px; }
+.form-group { margin-bottom: 14px; }
+.form-label { font-size: 13px; font-weight: 500; color: var(--text2); margin-bottom: 6px; display: block; }
+.form-input { width: 100%; border: 0.5px solid var(--border2); border-radius: var(--radius-sm); padding: 11px 13px; font-size: 15px; color: var(--text); background: var(--surface); font-family: inherit; outline: none; }
+.form-input:focus { border-color: var(--accent); }
+textarea.form-input { min-height: 110px; resize: vertical; line-height: 1.6; }
+
+/* TEMPLATES */
+.templates-list { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+.template-card { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 14px 16px; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.template-info { flex: 1; min-width: 0; }
+.template-name { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+.template-preview { font-size: 13px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.template-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.icon-btn-sm { width: 32px; height: 32px; border-radius: var(--radius-sm); border: 0.5px solid var(--border2); background: var(--surface2); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 15px; }
+.icon-btn-sm:active { opacity: 0.7; }
+.icon-btn-sm.danger { background: var(--danger-light); border-color: transparent; }
+
+/* PICKER */
+.picker-list { display: flex; flex-direction: column; gap: 8px; }
+.picker-item { background: var(--surface2); border-radius: var(--radius-sm); padding: 13px 15px; cursor: pointer; border: 0.5px solid var(--border); }
+.picker-item:active { opacity: 0.75; background: var(--accent-light); }
+.picker-item-name { font-size: 15px; font-weight: 500; margin-bottom: 3px; }
+.picker-item-sub { font-size: 12px; color: var(--accent); font-weight: 500; margin-bottom: 2px; }
+.picker-item-preview { font-size: 13px; color: var(--text2); }
+
+/* EMPTY STATE */
+.empty-state { text-align: center; padding: 40px 20px; }
+.empty-state .icon { font-size: 40px; margin-bottom: 12px; opacity: 0.3; }
+.empty-state p { color: var(--text2); font-size: 14px; line-height: 1.6; }
+
+/* TAG */
+.tag { background: var(--accent-light); color: var(--accent); font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 20px; display: inline-block; white-space: nowrap; }
+
+/* DATA SCREEN */
+.data-section { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.data-card { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.data-card-header { padding: 14px 16px 10px; border-bottom: 0.5px solid var(--border); }
+.data-card-header h3 { font-size: 15px; font-weight: 600; margin-bottom: 3px; }
+.data-card-header p { font-size: 13px; color: var(--text2); line-height: 1.5; }
+.data-card-body { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+.data-stats { display: flex; gap: 10px; }
+.data-stat { flex: 1; background: var(--surface2); border-radius: var(--radius-sm); padding: 10px 12px; text-align: center; }
+.data-stat-val { font-size: 22px; font-weight: 600; color: var(--accent); }
+.data-stat-lbl { font-size: 11px; color: var(--text2); margin-top: 2px; }
+.import-zone { border: 1.5px dashed var(--border2); border-radius: var(--radius-sm); padding: 20px; text-align: center; cursor: pointer; background: var(--surface2); }
+.import-zone:active { background: var(--accent-light); border-color: var(--accent); }
+.import-zone p { font-size: 14px; color: var(--text2); margin-top: 6px; }
+.import-zone .icon { font-size: 28px; }
+.merge-opts { display: flex; flex-direction: column; gap: 8px; }
+.merge-opt { display: flex; align-items: flex-start; gap: 10px; background: var(--surface2); border-radius: var(--radius-sm); padding: 12px 14px; cursor: pointer; border: 1.5px solid transparent; }
+.merge-opt.selected { border-color: var(--accent); background: var(--accent-light); }
+.merge-opt input { margin-top: 3px; accent-color: var(--accent); }
+.merge-opt-label { font-size: 14px; font-weight: 500; }
+.merge-opt-desc { font-size: 12px; color: var(--text2); margin-top: 2px; }
+.warning-box { background: #fff8e1; border: 0.5px solid #f0c040; border-radius: var(--radius-sm); padding: 10px 13px; font-size: 13px; color: #7a5c00; line-height: 1.5; }
+
+/* TOAST */
+.toast { position: fixed; bottom: 88px; left: 50%; transform: translateX(-50%); background: #1a1a1a; color: #fff; padding: 10px 20px; border-radius: 20px; font-size: 14px; z-index: 300; opacity: 0; transition: opacity 0.25s; pointer-events: none; white-space: nowrap; }
+.toast.show { opacity: 1; }
+
+/* ===== OBJECTIFS SCREEN ===== */
+.objectifs-today { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+.obj-check-item { display: flex; align-items: center; gap: 14px; background: var(--surface); border-radius: var(--radius); border: 0.5px solid var(--border); padding: 14px 16px; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
+.obj-check-item:active { opacity: 0.75; }
+.obj-check-item.checked { background: var(--accent-light); border-color: var(--accent2); }
+.obj-checkbox { width: 24px; height: 24px; border-radius: 6px; border: 2px solid var(--border2); background: var(--surface); display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.15s; }
+.obj-check-item.checked .obj-checkbox { background: var(--accent); border-color: var(--accent); }
+.obj-checkbox svg { display: none; }
+.obj-check-item.checked .obj-checkbox svg { display: block; }
+.obj-label { font-size: 15px; font-weight: 500; flex: 1; }
+.obj-check-item.checked .obj-label { color: var(--accent); text-decoration: line-through; opacity: 0.75; }
+
+/* Progress bar */
+.progress-bar-wrap { margin: 0 16px 14px; background: var(--surface); border-radius: var(--radius); border: 0.5px solid var(--border); padding: 12px 14px; }
+.progress-bar-label { display: flex; justify-content: space-between; font-size: 13px; color: var(--text2); margin-bottom: 8px; }
+.progress-bar-label span:last-child { font-weight: 600; color: var(--accent); }
+.progress-bar-track { height: 8px; background: var(--surface2); border-radius: 4px; overflow: hidden; }
+.progress-bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 4px; transition: width 0.4s ease; }
+
+/* ===== AGENDA OBJECTIF ===== */
+/* Objectif selector in header */
+.obj-selector-wrap { padding: 10px 16px 0; }
+.obj-selector {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--surface); border: 0.5px solid var(--border2);
+  border-radius: var(--radius); padding: 10px 14px;
+  cursor: pointer; position: relative;
+}
+.obj-selector:active { background: var(--surface2); }
+.obj-selector-emoji { font-size: 20px; flex-shrink: 0; }
+.obj-selector-name { font-size: 15px; font-weight: 600; flex: 1; }
+.obj-selector-arrow { font-size: 18px; color: var(--text3); }
+.obj-selector-pct { font-size: 12px; color: var(--accent); font-weight: 600; }
+
+/* obj switcher dropdown */
+.obj-switcher-overlay { display: none; position: fixed; inset: 0; z-index: 80; background: rgba(0,0,0,0.4); align-items: flex-end; justify-content: center; }
+.obj-switcher-overlay.open { display: flex; }
+.obj-switcher { background: var(--surface); border-radius: var(--radius) var(--radius) 0 0; width: 100%; max-width: 480px; max-height: 70vh; overflow-y: auto; padding-bottom: env(safe-area-inset-bottom, 16px); }
+.obj-switcher-header { padding: 12px 20px 14px; border-bottom: 0.5px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.obj-switcher-header h2 { font-size: 17px; font-weight: 600; }
+.obj-switcher-item { display: flex; align-items: center; gap: 12px; padding: 14px 20px; cursor: pointer; border-bottom: 0.5px solid var(--border); }
+.obj-switcher-item:active { background: var(--surface2); }
+.obj-switcher-item.active { background: var(--accent-light); }
+.obj-switcher-emoji { font-size: 22px; }
+.obj-switcher-info { flex: 1; }
+.obj-switcher-name { font-size: 15px; font-weight: 600; }
+.obj-switcher-desc { font-size: 12px; color: var(--text2); margin-top: 2px; }
+.obj-switcher-pct { font-size: 14px; font-weight: 700; color: var(--accent); }
+
+/* Day panel check row */
+.day-check-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 16px; cursor: pointer;
+  border-bottom: 0.5px solid var(--border);
+}
+.day-check-row:active { background: var(--surface2); }
+.day-check-big {
+  width: 28px; height: 28px; border-radius: 8px;
+  border: 2px solid var(--border2); background: var(--surface);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.day-check-row.done .day-check-big { background: var(--accent); border-color: var(--accent); }
+.day-check-big svg { display: none; }
+.day-check-row.done .day-check-big svg { display: block; }
+.day-check-label { font-size: 15px; font-weight: 500; }
+.day-check-row.done .day-check-label { color: var(--accent); }
+
+/* Comment section in day panel */
+.day-comment-section { padding: 12px 16px 14px; }
+.day-comment-label { font-size: 12px; font-weight: 500; color: var(--text3); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.4px; }
+.day-comment-text { font-size: 14px; line-height: 1.65; color: var(--text); white-space: pre-wrap; word-break: break-word; }
+.day-comment-placeholder { font-size: 14px; color: var(--text3); font-style: italic; }
+.day-comment-actions { display: flex; gap: 8px; margin-top: 10px; }
+
+/* SIDE DRAWER */
+.drawer-overlay { display: none; position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,0.35); }
+.drawer-overlay.open { display: block; }
+.drawer { position: fixed; top: 0; left: 0; bottom: 0; width: 280px; background: var(--surface); z-index: 51; transform: translateX(-100%); transition: transform 0.28s ease; display: flex; flex-direction: column; overflow-y: auto; padding-bottom: env(safe-area-inset-bottom, 0px); }
+.drawer-overlay.open .drawer { transform: translateX(0); }
+.drawer-header { padding: 52px 20px 16px; border-bottom: 0.5px solid var(--border); }
+.drawer-header h2 { font-size: 18px; font-weight: 600; color: var(--accent); }
+.drawer-header p { font-size: 13px; color: var(--text2); margin-top: 3px; }
+.drawer-section-title { font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--text3); padding: 14px 20px 6px; letter-spacing: 0.5px; }
+.drawer-item { display: flex; align-items: center; gap: 12px; padding: 12px 20px; cursor: pointer; font-size: 14px; color: var(--text); font-weight: 500; }
+.drawer-item:active { background: var(--surface2); }
+.drawer-item-emoji { font-size: 20px; width: 24px; text-align: center; }
+.drawer-item-pct { font-size: 12px; color: var(--accent); font-weight: 600; margin-left: auto; }
+.drawer-divider { height: 0.5px; background: var(--border); margin: 6px 0; }
+</style>
+</head>
+<body>
+
+<!-- SIDE DRAWER -->
+<div class="drawer-overlay" id="drawer-overlay" onclick="closeDrawer()">
+  <div class="drawer" onclick="event.stopPropagation()">
+    <div class="drawer-header">
+      <h2>SportLog</h2>
+      <p id="drawer-date"></p>
+    </div>
+    <div class="drawer-section-title">Navigation</div>
+    <div class="drawer-item" onclick="closeDrawer();showScreen('objectifs')">
+      <span class="drawer-item-emoji">✅</span> Objectifs du jour
+    </div>
+    <div class="drawer-item" onclick="closeDrawer();showScreen('agenda')">
+      <span class="drawer-item-emoji">📅</span> Agenda
+    </div>
+    <div class="drawer-divider"></div>
+    <div class="drawer-section-title">Agenda par objectif</div>
+    <div id="drawer-obj-list"></div>
+    <div class="drawer-divider"></div>
+    <div class="drawer-item" onclick="closeDrawer();showScreen('templates')">
+      <span class="drawer-item-emoji">📋</span> Modèles sport
+    </div>
+    <div class="drawer-item" onclick="closeDrawer();showScreen('data')">
+      <span class="drawer-item-emoji">💾</span> Données
+    </div>
+  </div>
+</div>
+
+<!-- OBJ SWITCHER DROPDOWN -->
+<div class="obj-switcher-overlay" id="obj-switcher-overlay" onclick="closeObjSwitcher()">
+  <div class="obj-switcher" onclick="event.stopPropagation()">
+    <div class="obj-switcher-header">
+      <h2>Choisir un objectif</h2>
+      <button class="modal-close" onclick="closeObjSwitcher()">&#10005;</button>
+    </div>
+    <div id="obj-switcher-list"></div>
+  </div>
+</div>
+
+<!-- OBJECTIFS SCREEN (HOME) -->
+<div class="screen active" id="screen-objectifs">
+  <div class="header">
+    <div class="header-row">
+      <div>
+        <h1>Mes Objectifs</h1>
+        <div class="header-sub" id="obj-today-label"></div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="icon-btn" onclick="openDrawer()">
+          <svg viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+        <button class="icon-btn" onclick="openNewObjectifModal()">
+          <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+  <div id="obj-progress-wrap"></div>
+  <div id="objectifs-today-list"></div>
+</div>
+
+<!-- AGENDA SCREEN (per objectif) -->
+<div class="screen" id="screen-agenda">
+  <div class="header">
+    <div class="header-row">
+      <div>
+        <h1>Agenda</h1>
+        <div class="header-sub" id="agenda-today-label"></div>
+      </div>
+      <button class="icon-btn" onclick="openDrawer()">
+        <svg viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+  <!-- Objectif selector -->
+  <div class="obj-selector-wrap">
+    <div class="obj-selector" id="obj-selector" onclick="openObjSwitcher()">
+      <span class="obj-selector-emoji" id="sel-emoji">🎯</span>
+      <span class="obj-selector-name" id="sel-name">Choisir un objectif</span>
+      <span class="obj-selector-pct" id="sel-pct"></span>
+      <span class="obj-selector-arrow">▾</span>
+    </div>
+  </div>
+  <!-- Calendar for this objectif -->
+  <div class="calendar-section" style="padding-top:12px">
+    <div class="month-nav">
+      <button class="month-arrow" onclick="changeAgendaMonth(-1)">&#8249;</button>
+      <h2 id="agenda-month-title"></h2>
+      <button class="month-arrow" onclick="changeAgendaMonth(1)">&#8250;</button>
+    </div>
+    <div class="weekdays">
+      <div class="weekday">L</div><div class="weekday">M</div><div class="weekday">M</div>
+      <div class="weekday">J</div><div class="weekday">V</div><div class="weekday">S</div>
+      <div class="weekday">D</div>
+    </div>
+    <div class="cal-grid" id="agenda-cal-grid"></div>
+  </div>
+  <div class="day-panel" id="agenda-day-panel"></div>
+</div>
+
+<!-- TEMPLATES SCREEN -->
+<div class="screen" id="screen-templates">
+  <div class="header">
+    <div class="header-row">
+      <div><h1>Modèles</h1><div class="header-sub">Séances réutilisables</div></div>
+      <button class="icon-btn" onclick="openNewTemplate()">
+        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
+    </div>
+  </div>
+  <div id="templates-list-container"></div>
+</div>
+
+<!-- DATA SCREEN -->
+<div class="screen" id="screen-data">
+  <div class="header">
+    <div class="header-row">
+      <div><h1>Données</h1><div class="header-sub">Sauvegarde &amp; restauration</div></div>
+    </div>
+  </div>
+  <div class="data-section">
+    <div class="data-card">
+      <div class="data-card-header"><h3>Résumé</h3><p>Données stockées localement sur cet appareil</p></div>
+      <div class="data-card-body">
+        <div class="data-stats">
+          <div class="data-stat"><div class="data-stat-val" id="stat-sessions">0</div><div class="data-stat-lbl">Séances</div></div>
+          <div class="data-stat"><div class="data-stat-val" id="stat-templates">0</div><div class="data-stat-lbl">Modèles</div></div>
+          <div class="data-stat"><div class="data-stat-val" id="stat-objectifs">0</div><div class="data-stat-lbl">Objectifs</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="data-card">
+      <div class="data-card-header"><h3>Exporter</h3><p>Télécharge toutes vos données dans un fichier <strong>.json</strong>.</p></div>
+      <div class="data-card-body">
+        <button class="btn btn-primary btn-full" onclick="exportData()">
+          <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Télécharger la sauvegarde
+        </button>
+      </div>
+    </div>
+    <div class="data-card">
+      <div class="data-card-header"><h3>Importer</h3><p>Restaurez une sauvegarde <strong>.json</strong> exportée depuis SportLog.</p></div>
+      <div class="data-card-body">
+        <div class="import-zone" onclick="document.getElementById('file-input').click()">
+          <div class="icon">📂</div>
+          <p>Appuyer pour choisir un fichier .json</p>
+        </div>
+        <input type="file" id="file-input" accept=".json,application/json" style="display:none" onchange="onFileSelected(event)">
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="nav">
+  <button class="nav-btn active" id="nav-objectifs" onclick="showScreen('objectifs')">
+    <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+    Objectifs
+  </button>
+  <button class="nav-btn" id="nav-agenda" onclick="showScreen('agenda')">
+    <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    Agenda
+  </button>
+  <button class="nav-btn" id="nav-templates" onclick="showScreen('templates')">
+    <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/></svg>
+    Modèles
+  </button>
+  <button class="nav-btn" id="nav-data" onclick="showScreen('data')">
+    <svg viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+    Données
+  </button>
+</nav>
+
+<!-- MODAL: nouvel objectif -->
+<div class="modal-overlay" id="modal-objectif">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <h2 id="modal-obj-title">Nouvel objectif</h2>
+      <button class="modal-close" onclick="closeModal('modal-objectif')">&#10005;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Emoji</label>
+        <input class="form-input" type="text" id="obj-emoji" placeholder="💧" maxlength="2" style="width:70px;text-align:center;font-size:22px;">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Nom de l'objectif</label>
+        <input class="form-input" type="text" id="obj-name" placeholder="Ex : Boire 2L d'eau, Méditer, Pas de réseau…">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Description (optionnel)</label>
+        <input class="form-input" type="text" id="obj-desc" placeholder="Précisez si besoin…">
+      </div>
+      <div style="display:flex;gap:8px;margin-top:4px">
+        <button class="btn btn-primary" style="flex:1" onclick="saveObjectif()">Enregistrer</button>
+        <button id="btn-delete-obj" class="btn btn-danger" style="display:none" onclick="deleteObjectif()">Supprimer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: agenda comment editor -->
+<div class="modal-overlay" id="modal-agenda-entry">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <h2 id="modal-agenda-title">Commentaire</h2>
+      <button class="modal-close" onclick="closeModal('modal-agenda-entry')">&#10005;</button>
+    </div>
+    <div class="modal-body">
+      <div id="modal-agenda-date-label" style="font-size:13px;color:var(--text2);margin-bottom:12px;"></div>
+      <div class="import-row">
+        <button class="btn btn-secondary" onclick="openAgendaPicker('template')">
+          <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          Depuis modèle
+        </button>
+        <button class="btn btn-secondary" onclick="openAgendaPicker('prev')">
+          <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
+          Note précédente
+        </button>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Note / Valeur / Commentaire</label>
+        <textarea class="form-input" id="agenda-entry-text" placeholder="Ex : 2.1L, 8h de sommeil, séance cardio 30min…" style="min-height:90px"></textarea>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-primary" style="flex:1" onclick="saveAgendaEntry()">Enregistrer</button>
+        <button id="btn-delete-agenda-entry" class="btn btn-danger" style="display:none" onclick="deleteAgendaEntry()">Supprimer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: agenda picker (templates ou notes précédentes) -->
+<div class="modal-overlay" id="modal-agenda-picker" style="z-index:200">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <h2 id="modal-agenda-picker-title">Choisir</h2>
+      <button class="modal-close" onclick="closeModal('modal-agenda-picker')">&#10005;</button>
+    </div>
+    <div class="modal-body">
+      <div id="agenda-picker-list" class="picker-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: template editor -->
+<div class="modal-overlay" id="modal-template">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <h2 id="modal-template-title">Nouveau modèle</h2>
+      <button class="modal-close" onclick="closeModal('modal-template')">&#10005;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label" for="tpl-name">Nom du modèle</label>
+        <input class="form-input" type="text" id="tpl-name" placeholder="Ex : Push, Pull, Full Body…">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="tpl-content">Contenu</label>
+        <textarea class="form-input" id="tpl-content" placeholder="Décrivez la séance librement…"></textarea>
+      </div>
+      <button class="btn btn-primary btn-full" onclick="saveTemplate()">Enregistrer le modèle</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: import confirm -->
+<div class="modal-overlay" id="modal-import-confirm">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <h2>Importer les données</h2>
+      <button class="modal-close" onclick="closeModal('modal-import-confirm')">&#10005;</button>
+    </div>
+    <div class="modal-body">
+      <div id="import-file-summary" style="margin-bottom:14px;"></div>
+      <p style="font-size:13px;font-weight:500;color:var(--text2);margin-bottom:10px;">Mode d'import</p>
+      <div class="merge-opts">
+        <label class="merge-opt selected" id="opt-merge-label">
+          <input type="radio" name="merge-mode" value="merge" checked onchange="selectMergeOpt(this)">
+          <div><div class="merge-opt-label">Fusionner</div><div class="merge-opt-desc">Ajoute les nouvelles données. En cas de conflit, vos données existantes sont conservées.</div></div>
+        </label>
+        <label class="merge-opt" id="opt-replace-label">
+          <input type="radio" name="merge-mode" value="replace" onchange="selectMergeOpt(this)">
+          <div><div class="merge-opt-label">Remplacer tout</div><div class="merge-opt-desc">Efface toutes les données actuelles et les remplace.</div></div>
+        </label>
+      </div>
+      <div class="warning-box" id="import-warning" style="margin-top:12px;display:none">⚠️ Cette action est irréversible. Toutes vos données actuelles seront supprimées.</div>
+      <button class="btn btn-primary btn-full" style="margin-top:14px" onclick="confirmImport()">Confirmer l'import</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ===== UTILS ===== */
+const MONTHS_FR = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+const DAYS_SHORT = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
+
+function getData(k, def) { try { return JSON.parse(localStorage.getItem(k)) ?? def; } catch { return def; } }
+function setData(k, v) { localStorage.setItem(k, JSON.stringify(v)); }
+function getSessions() { return getData('sessions_v2', {}); }
+function getTemplates() { return getData('templates', []); }
+function getObjectifs() { return getData('objectifs', []); }
+function getChecks() { return getData('obj_checks', {}); }
+// obj_entries: { objId: { 'YYYY-MM-DD': 'comment text' } }
+function getEntries() { return getData('obj_entries', {}); }
+
+function dateKey(y, m, d) { return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`; }
+function todayKey() { const t = new Date(); return dateKey(t.getFullYear(), t.getMonth(), t.getDate()); }
+function fmtDate(key) {
+  const [y,m,d] = key.split('-').map(Number);
+  return new Date(y, m-1, d).toLocaleDateString('fr-FR', {weekday:'long', day:'numeric', month:'long'});
+}
+function capFirst(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function lastNDays(n) {
+  const keys = [];
+  const now = new Date();
+  for (let i = n-1; i >= 0; i--) {
+    const d = new Date(now); d.setDate(now.getDate() - i);
+    keys.push(dateKey(d.getFullYear(), d.getMonth(), d.getDate()));
+  }
+  return keys;
+}
+function getRate(objId, dayKeys) {
+  const checks = getChecks();
+  const done = dayKeys.filter(k => checks[k] && checks[k][objId]).length;
+  return dayKeys.length > 0 ? Math.round((done / dayKeys.length) * 100) : 0;
+}
+function getStreak(objId) {
+  const checks = getChecks();
+  let streak = 0;
+  const now = new Date();
+  for (let i = 0; i < 365; i++) {
+    const d = new Date(now); d.setDate(now.getDate() - i);
+    const k = dateKey(d.getFullYear(), d.getMonth(), d.getDate());
+    if (checks[k] && checks[k][objId]) streak++;
+    else break;
+  }
+  return streak;
+}
+
+/* ===== SCREENS ===== */
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+  const navBtn = document.getElementById('nav-' + name);
+  if (navBtn) navBtn.classList.add('active');
+
+  if (name === 'objectifs') renderObjectifsToday();
+  if (name === 'agenda') renderAgenda();
+  if (name === 'templates') renderTemplates();
+  if (name === 'data') renderDataScreen();
+}
+
+/* ===== DRAWER ===== */
+function openDrawer() {
+  document.getElementById('drawer-overlay').classList.add('open');
+  renderDrawerObjList();
+  document.getElementById('drawer-date').textContent = capFirst(new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'}));
+}
+function closeDrawer() { document.getElementById('drawer-overlay').classList.remove('open'); }
+
+function renderDrawerObjList() {
+  const objectifs = getObjectifs();
+  const container = document.getElementById('drawer-obj-list');
+  if (!objectifs.length) {
+    container.innerHTML = '<div class="drawer-item" style="color:var(--text3);font-size:13px">Aucun objectif créé</div>';
+    return;
+  }
+  const days30 = lastNDays(30);
+  container.innerHTML = objectifs.map(obj => {
+    const pct = getRate(obj.id, days30);
+    return `<div class="drawer-item" onclick="switchAgendaToObj('${obj.id}');closeDrawer()">
+      <span class="drawer-item-emoji">${obj.emoji||'🎯'}</span>
+      <span>${escHtml(obj.name)}</span>
+      <span class="drawer-item-pct">${pct}%</span>
+    </div>`;
+  }).join('');
+}
+
+/* ===== OBJECTIFS TODAY ===== */
+function renderObjectifsToday() {
+  const now = new Date();
+  document.getElementById('obj-today-label').textContent = capFirst(now.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'}));
+  const objectifs = getObjectifs();
+  const checks = getChecks();
+  const today = todayKey();
+  const todayChecks = checks[today] || {};
+
+  const wrap = document.getElementById('obj-progress-wrap');
+  if (objectifs.length) {
+    const done = objectifs.filter(o => todayChecks[o.id]).length;
+    const pct = Math.round((done / objectifs.length) * 100);
+    wrap.innerHTML = `<div class="progress-bar-wrap">
+      <div class="progress-bar-label"><span>${done}/${objectifs.length} objectifs</span><span>${pct}%</span></div>
+      <div class="progress-bar-track"><div class="progress-bar-fill" style="width:${pct}%"></div></div>
+    </div>`;
+  } else { wrap.innerHTML = ''; }
+
+  const container = document.getElementById('objectifs-today-list');
+  if (!objectifs.length) {
+    container.innerHTML = `<div class="empty-state"><div class="icon">🎯</div><p>Aucun objectif créé.<br>Appuyez sur + pour en ajouter un.</p></div>`;
+    return;
+  }
+
+  const items = objectifs.map(obj => {
+    const checked = !!todayChecks[obj.id];
+    const streak = getStreak(obj.id);
+    return `<div class="obj-check-item${checked?' checked':''}" onclick="toggleCheck('${obj.id}')">
+      <div class="obj-checkbox">
+        <svg viewBox="0 0 24 24" width="14" height="14" stroke="#fff" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:18px">${obj.emoji||'🎯'}</span>
+          <span class="obj-label">${escHtml(obj.name)}</span>
+        </div>
+        ${obj.desc ? `<div style="font-size:12px;color:var(--text3);margin-top:2px;padding-left:26px">${escHtml(obj.desc)}</div>` : ''}
+      </div>
+      ${streak > 1 ? `<div style="font-size:12px;color:var(--warning);font-weight:600;flex-shrink:0">🔥${streak}j</div>` : ''}
+      <button onclick="event.stopPropagation();switchAgendaToObj('${obj.id}')" style="background:none;border:none;color:var(--text3);font-size:20px;cursor:pointer;padding:4px;flex-shrink:0;line-height:1">›</button>
+    </div>`;
+  }).join('');
+
+  container.innerHTML = `<div class="objectifs-today">${items}</div>`;
+}
+
+function toggleCheck(objId) {
+  const checks = getChecks();
+  const today = todayKey();
+  if (!checks[today]) checks[today] = {};
+  checks[today][objId] = !checks[today][objId];
+  setData('obj_checks', checks);
+  renderObjectifsToday();
+}
+
+/* ===== OBJECTIF MODAL ===== */
+let editingObjId = null;
+
+function openNewObjectifModal() {
+  editingObjId = null;
+  document.getElementById('modal-obj-title').textContent = 'Nouvel objectif';
+  document.getElementById('obj-emoji').value = '';
+  document.getElementById('obj-name').value = '';
+  document.getElementById('obj-desc').value = '';
+  document.getElementById('btn-delete-obj').style.display = 'none';
+  openModal('modal-objectif');
+}
+function editObjectif(objId) {
+  const obj = getObjectifs().find(o => o.id === objId);
+  if (!obj) return;
+  editingObjId = objId;
+  document.getElementById('modal-obj-title').textContent = 'Modifier l\'objectif';
+  document.getElementById('obj-emoji').value = obj.emoji || '';
+  document.getElementById('obj-name').value = obj.name;
+  document.getElementById('obj-desc').value = obj.desc || '';
+  document.getElementById('btn-delete-obj').style.display = 'flex';
+  openModal('modal-objectif');
+}
+function saveObjectif() {
+  const name = document.getElementById('obj-name').value.trim();
+  if (!name) { showToast('Donnez un nom à l\'objectif'); return; }
+  const emoji = document.getElementById('obj-emoji').value.trim() || '🎯';
+  const desc = document.getElementById('obj-desc').value.trim();
+  const objectifs = getObjectifs();
+  if (editingObjId) {
+    const idx = objectifs.findIndex(o => o.id === editingObjId);
+    if (idx >= 0) objectifs[idx] = { ...objectifs[idx], name, emoji, desc };
+  } else {
+    objectifs.push({ id: Date.now().toString(), name, emoji, desc });
+  }
+  setData('objectifs', objectifs);
+  closeModal('modal-objectif');
+  renderObjectifsToday();
+  if (document.getElementById('screen-agenda').classList.contains('active')) renderAgenda();
+  showToast(editingObjId ? 'Objectif mis à jour' : 'Objectif créé');
+}
+function deleteObjectif() {
+  if (!confirm('Supprimer cet objectif et tout son historique ?')) return;
+  setData('objectifs', getObjectifs().filter(o => o.id !== editingObjId));
+  closeModal('modal-objectif');
+  if (agendaObjId === editingObjId) agendaObjId = null;
+  renderObjectifsToday();
+  if (document.getElementById('screen-agenda').classList.contains('active')) renderAgenda();
+  showToast('Objectif supprimé');
+}
+
+/* ===== AGENDA PER OBJECTIF ===== */
+let agendaObjId = null;
+let agendaMonth, agendaYear, agendaSelectedDate;
+
+function switchAgendaToObj(objId) {
+  agendaObjId = objId;
+  showScreen('agenda');
+}
+
+function renderAgenda() {
+  const now = new Date();
+  document.getElementById('agenda-today-label').textContent = capFirst(now.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'}));
+
+  // init calendar state
+  if (!agendaMonth && agendaMonth !== 0) agendaMonth = now.getMonth();
+  if (!agendaYear) agendaYear = now.getFullYear();
+  if (!agendaSelectedDate) agendaSelectedDate = todayKey();
+
+  // If no objectif selected, auto-pick first
+  if (!agendaObjId) {
+    const objs = getObjectifs();
+    if (objs.length) agendaObjId = objs[0].id;
+  }
+
+  renderAgendaSelector();
+  renderAgendaCalendar();
+  renderAgendaDayPanel();
+}
+
+function renderAgendaSelector() {
+  const objectifs = getObjectifs();
+  const obj = objectifs.find(o => o.id === agendaObjId);
+  if (!obj) {
+    document.getElementById('sel-emoji').textContent = '🎯';
+    document.getElementById('sel-name').textContent = objectifs.length ? 'Choisir un objectif' : 'Aucun objectif';
+    document.getElementById('sel-pct').textContent = '';
+    return;
+  }
+  const pct = getRate(obj.id, lastNDays(30));
+  document.getElementById('sel-emoji').textContent = obj.emoji || '🎯';
+  document.getElementById('sel-name').textContent = obj.name;
+  document.getElementById('sel-pct').textContent = pct + '%';
+}
+
+function openObjSwitcher() {
+  const objectifs = getObjectifs();
+  const list = document.getElementById('obj-switcher-list');
+  if (!objectifs.length) {
+    list.innerHTML = `<div style="padding:24px;text-align:center;color:var(--text2);font-size:14px">Aucun objectif créé.</div>`;
+  } else {
+    const days30 = lastNDays(30);
+    list.innerHTML = objectifs.map(obj => {
+      const pct = getRate(obj.id, days30);
+      const isActive = obj.id === agendaObjId;
+      return `<div class="obj-switcher-item${isActive?' active':''}" onclick="selectAgendaObj('${obj.id}')">
+        <div class="obj-switcher-emoji">${obj.emoji||'🎯'}</div>
+        <div class="obj-switcher-info">
+          <div class="obj-switcher-name">${escHtml(obj.name)}</div>
+          ${obj.desc ? `<div class="obj-switcher-desc">${escHtml(obj.desc)}</div>` : ''}
+        </div>
+        <div class="obj-switcher-pct">${pct}%</div>
+      </div>`;
+    }).join('');
+  }
+  document.getElementById('obj-switcher-overlay').classList.add('open');
+}
+function closeObjSwitcher() { document.getElementById('obj-switcher-overlay').classList.remove('open'); }
+function selectAgendaObj(objId) {
+  agendaObjId = objId;
+  closeObjSwitcher();
+  renderAgendaSelector();
+  renderAgendaCalendar();
+  renderAgendaDayPanel();
+}
+
+function changeAgendaMonth(dir) {
+  agendaMonth += dir;
+  if (agendaMonth > 11) { agendaMonth = 0; agendaYear++; }
+  if (agendaMonth < 0) { agendaMonth = 11; agendaYear--; }
+  renderAgendaCalendar();
+}
+
+function renderAgendaCalendar() {
+  document.getElementById('agenda-month-title').textContent = `${MONTHS_FR[agendaMonth]} ${agendaYear}`;
+  const grid = document.getElementById('agenda-cal-grid');
+  grid.innerHTML = '';
+  const checks = getChecks();
+  const entries = agendaObjId ? (getEntries()[agendaObjId] || {}) : {};
+  const todayStr = todayKey();
+
+  const first = new Date(agendaYear, agendaMonth, 1);
+  const last = new Date(agendaYear, agendaMonth + 1, 0);
+  let startDay = first.getDay(); startDay = startDay === 0 ? 6 : startDay - 1;
+
+  for (let i = 0; i < startDay; i++) {
+    const el = document.createElement('div'); el.className = 'cal-day empty'; grid.appendChild(el);
+  }
+  for (let d = 1; d <= last.getDate(); d++) {
+    const key = dateKey(agendaYear, agendaMonth, d);
+    const el = document.createElement('button');
+    el.className = 'cal-day';
+    el.textContent = d;
+    if (key === todayStr) el.classList.add('today');
+    if (key === agendaSelectedDate) el.classList.add('selected');
+    // checked = cochage objectif ce jour
+    if (agendaObjId && checks[key] && checks[key][agendaObjId]) el.classList.add('checked-day');
+    // has-entry = commentaire ce jour
+    if (entries[key]) el.classList.add('has-entry');
+    el.onclick = () => { agendaSelectedDate = key; renderAgendaCalendar(); renderAgendaDayPanel(); };
+    grid.appendChild(el);
+  }
+}
+
+function renderAgendaDayPanel() {
+  const panel = document.getElementById('agenda-day-panel');
+  const dateLabel = capFirst(fmtDate(agendaSelectedDate));
+  const today = todayKey();
+
+  if (!agendaObjId) {
+    panel.innerHTML = `<div class="day-empty"><p style="color:var(--text3)">Sélectionnez un objectif ci-dessus.</p></div>`;
+    return;
+  }
+
+  const checks = getChecks();
+  const isChecked = !!(checks[agendaSelectedDate] && checks[agendaSelectedDate][agendaObjId]);
+  const allEntries = getEntries();
+  const objEntries = allEntries[agendaObjId] || {};
+  const comment = objEntries[agendaSelectedDate] || '';
+  const isFuture = agendaSelectedDate > today;
+  const obj = getObjectifs().find(o => o.id === agendaObjId);
+  const objName = obj ? obj.name : '';
+
+  panel.innerHTML = `
+    <div class="day-panel-header">
+      <div>
+        <h3>${dateLabel}</h3>
+      </div>
+      ${isChecked ? `<span class="tag">✓ Réussi</span>` : (isFuture ? '' : `<span style="font-size:11px;color:var(--text3)">Non coché</span>`)}
+    </div>
+    <div class="day-check-row${isChecked?' done':''}" onclick="${isFuture ? '' : `toggleAgendaCheck('${agendaObjId}','${agendaSelectedDate}')`}" style="${isFuture?'opacity:0.4;cursor:default':''}">
+      <div class="day-check-big">
+        <svg viewBox="0 0 24 24" width="15" height="15" stroke="#fff" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      <span class="day-check-label">${isFuture ? 'Jour à venir' : (isChecked ? 'Objectif réussi ce jour' : 'Marquer comme réussi')}</span>
+    </div>
+    <div class="day-comment-section">
+      <div class="day-comment-label">Note / Valeur</div>
+      ${comment
+        ? `<div class="day-comment-text">${escHtml(comment)}</div>
+           <div class="day-comment-actions">
+             <button class="btn btn-secondary btn-sm" onclick="openAgendaEntryModal(true)">✏️ Modifier</button>
+             <button class="btn btn-danger btn-sm" onclick="deleteAgendaEntry()">🗑</button>
+           </div>`
+        : `<div class="day-comment-placeholder">Ajouter une note, une valeur…</div>
+           <div class="day-comment-actions">
+             <button class="btn btn-secondary btn-sm" onclick="openAgendaEntryModal(false)">+ Ajouter une note</button>
+           </div>`
+      }
+    </div>`;
+}
+
+function toggleAgendaCheck(objId, dateStr) {
+  const checks = getChecks();
+  if (!checks[dateStr]) checks[dateStr] = {};
+  checks[dateStr][objId] = !checks[dateStr][objId];
+  setData('obj_checks', checks);
+  renderAgendaCalendar();
+  renderAgendaDayPanel();
+  // also update objectifs screen if visible
+  if (dateStr === todayKey() && document.getElementById('screen-objectifs').classList.contains('active')) {
+    renderObjectifsToday();
+  }
+}
+
+function openAgendaEntryModal(editing) {
+  const allEntries = getEntries();
+  const objEntries = allEntries[agendaObjId] || {};
+  const existing = objEntries[agendaSelectedDate] || '';
+  document.getElementById('modal-agenda-title').textContent = editing ? 'Modifier la note' : 'Ajouter une note';
+  document.getElementById('modal-agenda-date-label').textContent = capFirst(fmtDate(agendaSelectedDate));
+  document.getElementById('agenda-entry-text').value = existing;
+  document.getElementById('btn-delete-agenda-entry').style.display = existing ? 'flex' : 'none';
+  openModal('modal-agenda-entry');
+}
+
+function saveAgendaEntry() {
+  const text = document.getElementById('agenda-entry-text').value.trim();
+  if (!text) { showToast('Ajoutez du texte'); return; }
+  const allEntries = getEntries();
+  if (!allEntries[agendaObjId]) allEntries[agendaObjId] = {};
+  allEntries[agendaObjId][agendaSelectedDate] = text;
+  setData('obj_entries', allEntries);
+  closeModal('modal-agenda-entry');
+  renderAgendaCalendar();
+  renderAgendaDayPanel();
+  showToast('Note enregistrée');
+}
+
+function deleteAgendaEntry() {
+  const allEntries = getEntries();
+  if (allEntries[agendaObjId]) delete allEntries[agendaObjId][agendaSelectedDate];
+  setData('obj_entries', allEntries);
+  closeModal('modal-agenda-entry');
+  renderAgendaCalendar();
+  renderAgendaDayPanel();
+  showToast('Note supprimée');
+}
+
+function openAgendaPicker(type) {
+  const list = document.getElementById('agenda-picker-list');
+  list.innerHTML = '';
+  if (type === 'template') {
+    document.getElementById('modal-agenda-picker-title').textContent = 'Choisir un modèle';
+    const templates = getTemplates();
+    if (!templates.length) {
+      list.innerHTML = '<p style="color:var(--text2);font-size:14px;text-align:center;padding:20px 0">Aucun modèle créé.<br>Allez dans l\'onglet Modèles.</p>';
+    } else {
+      templates.forEach(t => {
+        const el = document.createElement('div');
+        el.className = 'picker-item';
+        el.innerHTML = `<div class="picker-item-name">${escHtml(t.name)}</div><div class="picker-item-preview">${escHtml(t.content.substring(0,80))}${t.content.length > 80 ? '…' : ''}</div>`;
+        el.onclick = () => { document.getElementById('agenda-entry-text').value = t.content; closeModal('modal-agenda-picker'); showToast('Modèle importé'); };
+        list.appendChild(el);
+      });
+    }
+  } else {
+    document.getElementById('modal-agenda-picker-title').textContent = 'Note précédente';
+    const allEntries = getEntries();
+    const objEntries = agendaObjId ? (allEntries[agendaObjId] || {}) : {};
+    const keys = Object.keys(objEntries).sort().reverse().filter(k => k !== agendaSelectedDate);
+    if (!keys.length) {
+      list.innerHTML = '<p style="color:var(--text2);font-size:14px;text-align:center;padding:20px 0">Aucune note précédente pour cet objectif.</p>';
+    } else {
+      keys.slice(0, 30).forEach(k => {
+        const text = objEntries[k];
+        const el = document.createElement('div');
+        el.className = 'picker-item';
+        el.innerHTML = `<div class="picker-item-name">${escHtml(capFirst(fmtDate(k)))}</div><div class="picker-item-preview">${escHtml(text.substring(0,80))}${text.length > 80 ? '…' : ''}</div>`;
+        el.onclick = () => { document.getElementById('agenda-entry-text').value = text; closeModal('modal-agenda-picker'); showToast('Note importée'); };
+        list.appendChild(el);
+      });
+    }
+  }
+  openModal('modal-agenda-picker');
+}
+
+/* ===== TEMPLATES ===== */
+let editingTemplateId = null;
+function renderTemplates() {
+  const container = document.getElementById('templates-list-container');
+  const templates = getTemplates();
+  if (!templates.length) {
+    container.innerHTML = `<div class="empty-state"><div class="icon">📋</div><p>Pas encore de modèle.<br>Créez votre premier modèle<br>pour le réutiliser facilement.</p></div>`;
+    return;
+  }
+  container.innerHTML = `<div class="templates-list">${templates.map(t => `
+    <div class="template-card">
+      <div class="template-info">
+        <div class="template-name">${escHtml(t.name)}</div>
+        <div class="template-preview">${escHtml(t.content.substring(0,80))}${t.content.length > 80 ? '…' : ''}</div>
+      </div>
+      <div class="template-actions">
+        <button class="icon-btn-sm" onclick="editTemplate('${t.id}')">✏️</button>
+        <button class="icon-btn-sm danger" onclick="deleteTemplate('${t.id}')">🗑</button>
+      </div>
+    </div>`).join('')}</div>`;
+}
+function openNewTemplate() {
+  editingTemplateId = null;
+  document.getElementById('modal-template-title').textContent = 'Nouveau modèle';
+  document.getElementById('tpl-name').value = '';
+  document.getElementById('tpl-content').value = '';
+  openModal('modal-template');
+}
+function editTemplate(id) {
+  const t = getTemplates().find(x => x.id === id);
+  if (!t) return;
+  editingTemplateId = id;
+  document.getElementById('modal-template-title').textContent = 'Modifier le modèle';
+  document.getElementById('tpl-name').value = t.name;
+  document.getElementById('tpl-content').value = t.content;
+  openModal('modal-template');
+}
+function saveTemplate() {
+  const name = document.getElementById('tpl-name').value.trim();
+  const content = document.getElementById('tpl-content').value.trim();
+  if (!name) { showToast('Donnez un nom au modèle'); return; }
+  if (!content) { showToast('Ajoutez du contenu'); return; }
+  const templates = getTemplates();
+  if (editingTemplateId) {
+    const idx = templates.findIndex(x => x.id === editingTemplateId);
+    if (idx >= 0) templates[idx] = { ...templates[idx], name, content };
+  } else {
+    templates.push({ id: Date.now().toString(), name, content });
+  }
+  setData('templates', templates);
+  closeModal('modal-template');
+  renderTemplates();
+  showToast(editingTemplateId ? 'Modèle mis à jour' : 'Modèle créé');
+}
+function deleteTemplate(id) {
+  if (!confirm('Supprimer ce modèle ?')) return;
+  setData('templates', getTemplates().filter(x => x.id !== id));
+  renderTemplates();
+  showToast('Modèle supprimé');
+}
+
+/* ===== DATA ===== */
+function renderDataScreen() {
+  document.getElementById('stat-sessions').textContent = Object.keys(getSessions()).length;
+  document.getElementById('stat-templates').textContent = getTemplates().length;
+  document.getElementById('stat-objectifs').textContent = getObjectifs().length;
+}
+function exportData() {
+  const payload = { version: 4, exportedAt: new Date().toISOString(), sessions: getSessions(), templates: getTemplates(), objectifs: getObjectifs(), obj_checks: getChecks(), obj_entries: getEntries() };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `sportlog-${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
+  showToast('Sauvegarde téléchargée');
+}
+let pendingImport = null;
+
+function migrateImport(data) {
+  data.sessions    = data.sessions    || {};
+  data.templates   = data.templates   || [];
+  data.objectifs   = data.objectifs   || [];
+  data.obj_checks  = data.obj_checks  || {};
+  data.obj_entries = data.obj_entries || {};
+  // Auto-migrate sport sessions into the agenda of an objectif named "Sport"
+  const sportObj = data.objectifs.find(o => o.name && o.name.toLowerCase() === 'sport');
+  if (sportObj && Object.keys(data.sessions).length > 0) {
+    if (!data.obj_entries[sportObj.id]) data.obj_entries[sportObj.id] = {};
+    Object.entries(data.sessions).forEach(([dateStr, sess]) => {
+      if (!data.obj_entries[sportObj.id][dateStr]) {
+        data.obj_entries[sportObj.id][dateStr] = sess.name ? '[' + sess.name + ']' + '\n' + sess.content : sess.content;
+      }
+      if (!data.obj_checks[dateStr]) data.obj_checks[dateStr] = {};
+      if (data.obj_checks[dateStr][sportObj.id] === undefined) data.obj_checks[dateStr][sportObj.id] = true;
+    });
+  }
+  return data;
+}
+
+function onFileSelected(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      let data = JSON.parse(e.target.result);
+      if (!data.sessions && !data.templates && !data.objectifs && !data.obj_checks) throw new Error();
+      data = migrateImport(data);
+      pendingImport = data;
+      const exportDate = data.exportedAt ? new Date(data.exportedAt).toLocaleDateString('fr-FR') : 'inconnue';
+      const version = data.version ? 'v' + data.version : 'ancienne version';
+      const sportObj = data.objectifs.find(o => o.name && o.name.toLowerCase() === 'sport');
+      const sessCount = Object.keys(data.sessions).length;
+      const migNote = (sportObj && sessCount > 0)
+        ? '<div style="color:var(--accent);margin-top:4px">↗ ' + sessCount + ' séance(s) sport migrée(s) vers l\'agenda &laquo; ' + escHtml(sportObj.name) + ' &raquo;</div>'
+        : (sessCount > 0 ? '<div style="color:var(--text3);margin-top:4px">' + sessCount + ' séance(s) sport conservées (pas d\'objectif « Sport » trouvé)</div>' : '');
+      document.getElementById('import-file-summary').innerHTML = '<div style="background:var(--surface2);border-radius:var(--radius-sm);padding:12px 14px;font-size:13px;line-height:1.8;"><div><strong>' + escHtml(file.name) + '</strong> <span style="color:var(--text3)">' + version + '</span></div><div style="color:var(--text2)">Exporté le : ' + exportDate + '</div><div style="color:var(--text2)">' + (data.templates||[]).length + ' modèle(s) · ' + (data.objectifs||[]).length + ' objectif(s)</div>' + migNote + '</div>';
+      document.getElementById('import-warning').style.display = 'none';
+      document.querySelector('input[name="merge-mode"][value="merge"]').checked = true;
+      document.getElementById('opt-merge-label').classList.add('selected');
+      document.getElementById('opt-replace-label').classList.remove('selected');
+      openModal('modal-import-confirm');
+    } catch { showToast('Fichier invalide ou corrompu'); }
+    event.target.value = '';
+  };
+  reader.readAsText(file);
+}
+function selectMergeOpt(radio) {
+  document.getElementById('opt-merge-label').classList.toggle('selected', radio.value === 'merge');
+  document.getElementById('opt-replace-label').classList.toggle('selected', radio.value === 'replace');
+  document.getElementById('import-warning').style.display = radio.value === 'replace' ? 'block' : 'none';
+}
+function confirmImport() {
+  if (!pendingImport) return;
+  const mode = document.querySelector('input[name="merge-mode"]:checked').value;
+  if (mode === 'replace') {
+    if (pendingImport.sessions) setData('sessions_v2', pendingImport.sessions);
+    if (pendingImport.templates) setData('templates', pendingImport.templates);
+    if (pendingImport.objectifs) setData('objectifs', pendingImport.objectifs);
+    if (pendingImport.obj_checks) setData('obj_checks', pendingImport.obj_checks);
+    if (pendingImport.obj_entries) setData('obj_entries', pendingImport.obj_entries);
+  } else {
+    if (pendingImport.sessions) { const e = getSessions(); setData('sessions_v2', {...pendingImport.sessions,...e}); }
+    if (pendingImport.templates) { const e = getTemplates(); const ids = new Set(e.map(t=>t.id)); setData('templates', [...e,...(pendingImport.templates||[]).filter(t=>!ids.has(t.id))]); }
+    if (pendingImport.objectifs) { const e = getObjectifs(); const ids = new Set(e.map(o=>o.id)); setData('objectifs', [...e,...(pendingImport.objectifs||[]).filter(o=>!ids.has(o.id))]); }
+    if (pendingImport.obj_checks) { const e = getChecks(); const m = {...pendingImport.obj_checks}; Object.keys(e).forEach(k=>{ m[k]={...(m[k]||{}),...e[k]}; }); setData('obj_checks', m); }
+    if (pendingImport.obj_entries) { const e = getEntries(); const m = {...pendingImport.obj_entries}; Object.keys(e).forEach(objId=>{ if(!m[objId]) m[objId]={}; Object.assign(m[objId], e[objId]); }); setData('obj_entries', m); }
+  }
+  pendingImport = null;
+  closeModal('modal-import-confirm');
+  renderDataScreen();
+  showToast('Import réussi');
+}
+
+/* MODAL HELPERS */
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('open'); });
+});
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+/* INIT */
+function init() {
+  const now = new Date();
+  agendaMonth = now.getMonth();
+  agendaYear = now.getFullYear();
+  agendaSelectedDate = todayKey();
+  renderObjectifsToday();
+}
+init();
+
+/* SERVICE WORKER */
+const swCode = `const CACHE='sportlog-v3';self.addEventListener('install',e=>{self.skipWaiting();});self.addEventListener('activate',e=>{e.waitUntil(clients.claim());});self.addEventListener('fetch',e=>{e.respondWith(caches.open(CACHE).then(cache=>cache.match(e.request).then(cached=>{const fetched=fetch(e.request).then(res=>{if(res&&res.status===200)cache.put(e.request,res.clone());return res;}).catch(()=>cached);return cached||fetched;})));});`;
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register(URL.createObjectURL(new Blob([swCode], {type:'application/javascript'}))).catch(()=>{});
+}
+
+/* INSTALL BANNER */
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt = e; showInstallBanner(); });
+function showInstallBanner() {
+  if (document.getElementById('install-banner')) return;
+  const banner = document.createElement('div');
+  banner.id = 'install-banner';
+  banner.style.cssText = `position:fixed;bottom:72px;left:50%;transform:translateX(-50%);width:calc(100% - 32px);max-width:448px;background:#2d6a4f;color:#fff;border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:12px;z-index:400;box-shadow:0 4px 20px rgba(0,0,0,0.25);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;`;
+  banner.innerHTML = `<span style="font-size:26px">📲</span><div style="flex:1"><div style="font-size:14px;font-weight:600;">Installer SportLog</div><div style="font-size:12px;opacity:0.85;">Accès rapide depuis votre écran d'accueil</div></div><button onclick="installApp()" style="background:#fff;color:#2d6a4f;border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;">Installer</button><button onclick="dismissBanner()" style="background:none;border:none;color:#fff;font-size:20px;cursor:pointer;padding:0 4px;">×</button>`;
+  document.body.appendChild(banner);
+}
+function installApp() { if(!deferredPrompt)return; deferredPrompt.prompt(); deferredPrompt.userChoice.then(()=>{deferredPrompt=null;dismissBanner();}); }
+function dismissBanner() { const b=document.getElementById('install-banner'); if(b)b.remove(); }
+window.addEventListener('appinstalled', () => { dismissBanner(); showToast('SportLog installé !'); });
+</script>
+</body>
+</html>
