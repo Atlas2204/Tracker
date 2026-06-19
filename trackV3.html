@@ -1,0 +1,1193 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#2d6a4f">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SportLog">
+<title>SportLog</title>
+<script>
+const manifestData = {
+  name:"SportLog",short_name:"SportLog",start_url:".",display:"standalone",
+  background_color:"#f8f7f4",theme_color:"#2d6a4f",orientation:"portrait",
+  icons:[{src:"data:image/svg+xml,"+encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' rx='40' fill='%232d6a4f'/><text x='96' y='130' text-anchor='middle' font-size='110' font-family='Arial'>🏋️</text></svg>`),sizes:"192x192",type:"image/svg+xml"}]
+};
+const _mb=new Blob([JSON.stringify(manifestData)],{type:'application/json'});
+const _ml=document.createElement('link');_ml.rel='manifest';_ml.href=URL.createObjectURL(_mb);
+document.currentScript.parentNode.insertBefore(_ml,document.currentScript);
+</script>
+<style>
+:root{
+  --bg:#f8f7f4;--surface:#fff;--surface2:#f0ede8;
+  --accent:#2d6a4f;--accent2:#52b788;--accent-light:#d8f3dc;
+  --text:#1a1a1a;--text2:#6b6b6b;--text3:#a0a0a0;
+  --border:rgba(0,0,0,.08);--border2:rgba(0,0,0,.15);
+  --danger:#c0392b;--danger-light:#fdecea;--warning:#e67e22;
+  --radius:14px;--radius-sm:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;max-width:480px;margin:0 auto;overflow-x:hidden}
+.screen{display:none;min-height:100vh;padding-bottom:80px}
+.screen.active{display:block}
+
+/* HEADER */
+.header{background:var(--surface);border-bottom:.5px solid var(--border2);padding:16px 20px 12px;position:sticky;top:0;z-index:10}
+.header-row{display:flex;align-items:center;justify-content:space-between}
+.header h1{font-size:22px;font-weight:600;color:var(--accent);letter-spacing:-.5px}
+.header-sub{font-size:13px;color:var(--text2);margin-top:2px}
+.icon-btn{width:38px;height:38px;border:none;background:var(--accent-light);border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--accent);flex-shrink:0}
+.icon-btn:active{transform:scale(.93)}
+.icon-btn svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+
+/* NAV */
+.nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:var(--surface);border-top:.5px solid var(--border2);display:flex;z-index:20;padding-bottom:env(safe-area-inset-bottom,0px)}
+.nav-btn{flex:1;border:none;background:none;cursor:pointer;padding:10px 0 8px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;color:var(--text3);font-weight:500}
+.nav-btn svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.nav-btn.active{color:var(--accent)}
+.nav-btn:active{opacity:.7}
+
+/* CALENDAR */
+.calendar-section{padding:12px 16px 0}
+.month-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.month-nav h2{font-size:17px;font-weight:600}
+.month-arrow{width:32px;height:32px;border-radius:50%;border:.5px solid var(--border2);background:var(--surface);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--text2)}
+.month-arrow:active{background:var(--surface2)}
+.weekdays{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:6px}
+.weekday{text-align:center;font-size:11px;font-weight:600;color:var(--text3);padding:4px 0;text-transform:uppercase}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.cal-day{aspect-ratio:1;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;cursor:pointer;position:relative;border:none;background:none;color:var(--text)}
+.cal-day:active{opacity:.7}
+.cal-day.empty{pointer-events:none}
+.cal-day.today{background:var(--accent-light);font-weight:600;color:var(--accent)}
+.cal-day.selected{background:var(--accent);color:#fff}
+.cal-day.has-entry::after{content:'';width:4px;height:4px;border-radius:50%;background:var(--accent2);position:absolute;bottom:3px}
+.cal-day.selected.has-entry::after{background:rgba(255,255,255,.7)}
+.cal-day.checked-day{background:var(--accent-light)}
+.cal-day.checked-day.today{background:var(--accent-light)}
+.cal-day.checked-day.selected{background:var(--accent)}
+
+/* BUTTONS */
+.btn{border:none;border-radius:var(--radius-sm);cursor:pointer;font-size:14px;font-weight:500;padding:11px 16px;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn:active{opacity:.75;transform:scale(.98)}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-secondary{background:var(--surface2);color:var(--text);border:.5px solid var(--border2)}
+.btn-danger{background:var(--danger-light);color:var(--danger)}
+.btn-ghost{background:none;color:var(--accent);border:.5px solid var(--accent);font-size:13px;padding:8px 13px}
+.btn-sm{font-size:13px;padding:8px 13px}
+.btn-full{width:100%}
+.btn svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.45);align-items:flex-end;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--surface);border-radius:var(--radius) var(--radius) 0 0;width:100%;max-width:480px;max-height:92vh;overflow-y:auto;padding-bottom:env(safe-area-inset-bottom,16px)}
+.modal-handle{width:36px;height:4px;background:var(--border2);border-radius:2px;margin:12px auto 4px}
+.modal-header{padding:12px 20px 14px;border-bottom:.5px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.modal-header h2{font-size:17px;font-weight:600}
+.modal-close{font-size:20px;color:var(--text2);background:none;border:none;cursor:pointer;width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:50%}
+.modal-close:active{background:var(--surface2)}
+.modal-body{padding:16px 20px}
+
+/* FORMS */
+.form-group{margin-bottom:14px}
+.form-label{font-size:13px;font-weight:500;color:var(--text2);margin-bottom:6px;display:block}
+.form-input{width:100%;border:.5px solid var(--border2);border-radius:var(--radius-sm);padding:11px 13px;font-size:15px;color:var(--text);background:var(--surface);font-family:inherit;outline:none}
+.form-input:focus{border-color:var(--accent)}
+textarea.form-input{min-height:110px;resize:vertical;line-height:1.6}
+
+/* TOGGLE ROW — case à cocher "mode template" */
+.toggle-row{display:flex;align-items:center;gap:12px;padding:12px 0;cursor:pointer;user-select:none}
+.toggle-track{width:42px;height:24px;border-radius:12px;background:var(--border2);position:relative;transition:background .2s;flex-shrink:0}
+.toggle-track.on{background:var(--accent)}
+.toggle-thumb{width:20px;height:20px;border-radius:50%;background:#fff;position:absolute;top:2px;left:2px;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.toggle-track.on .toggle-thumb{left:20px}
+.toggle-label{font-size:14px;font-weight:500;color:var(--text2)}
+.toggle-track.on + .toggle-label{color:var(--accent)}
+.import-row{display:flex;gap:8px;margin-bottom:14px}
+.import-row .btn{flex:1;font-size:12px;padding:9px 8px}
+
+/* PICKER */
+.picker-list{display:flex;flex-direction:column;gap:8px}
+.picker-item{background:var(--surface2);border-radius:var(--radius-sm);padding:13px 15px;cursor:pointer;border:.5px solid var(--border)}
+.picker-item:active{opacity:.75;background:var(--accent-light)}
+.picker-item-name{font-size:15px;font-weight:500;margin-bottom:3px}
+.picker-item-sub{font-size:12px;color:var(--accent);font-weight:500;margin-bottom:2px}
+.picker-item-preview{font-size:13px;color:var(--text2)}
+
+/* TEMPLATE CARDS */
+.template-card{background:var(--surface);border:.5px solid var(--border);border-radius:var(--radius);padding:14px 16px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px}
+.template-info{flex:1;min-width:0}
+.template-name{font-size:15px;font-weight:600;margin-bottom:4px}
+.template-preview{font-size:13px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.template-actions{display:flex;gap:6px;flex-shrink:0}
+.icon-btn-sm{width:32px;height:32px;border-radius:var(--radius-sm);border:.5px solid var(--border2);background:var(--surface2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px}
+.icon-btn-sm:active{opacity:.7}
+.icon-btn-sm.danger{background:var(--danger-light);border-color:transparent}
+
+/* EMPTY STATE */
+.empty-state{text-align:center;padding:40px 20px}
+.empty-state .icon{font-size:40px;margin-bottom:12px;opacity:.3}
+.empty-state p{color:var(--text2);font-size:14px;line-height:1.6}
+
+/* TAG */
+.tag{background:var(--accent-light);color:var(--accent);font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;display:inline-block;white-space:nowrap}
+
+/* PROGRESS BAR */
+.progress-bar-wrap{margin:14px 16px 0;background:var(--surface);border-radius:var(--radius);border:.5px solid var(--border);padding:12px 14px}
+.progress-bar-label{display:flex;justify-content:space-between;font-size:13px;color:var(--text2);margin-bottom:8px}
+.progress-bar-label span:last-child{font-weight:600;color:var(--accent)}
+.progress-bar-track{height:8px;background:var(--surface2);border-radius:4px;overflow:hidden}
+.progress-bar-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:4px;transition:width .4s ease}
+
+/* OBJECTIFS LIST */
+.obj-check-item{display:flex;align-items:center;gap:14px;background:var(--surface);border-radius:var(--radius);border:.5px solid var(--border);padding:14px 16px;cursor:pointer}
+.obj-check-item.checked{background:var(--accent-light);border-color:var(--accent2)}
+.obj-checkbox{width:24px;height:24px;border-radius:6px;border:2px solid var(--border2);background:var(--surface);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s}
+.obj-check-item.checked .obj-checkbox{background:var(--accent);border-color:var(--accent)}
+.obj-checkbox svg{display:none}
+.obj-check-item.checked .obj-checkbox svg{display:block}
+.obj-label{font-size:15px;font-weight:500;flex:1}
+.obj-check-item.checked .obj-label{color:var(--accent);text-decoration:line-through;opacity:.75}
+
+/* OBJ SELECTOR (agenda) */
+.obj-selector-wrap{padding:12px 16px 0}
+.obj-selector{display:flex;align-items:center;gap:10px;background:var(--surface);border:.5px solid var(--border2);border-radius:var(--radius);padding:10px 14px;cursor:pointer}
+.obj-selector:active{background:var(--surface2)}
+.obj-selector-emoji{font-size:20px;flex-shrink:0}
+.obj-selector-name{font-size:15px;font-weight:600;flex:1}
+.obj-selector-pct{font-size:12px;color:var(--accent);font-weight:600}
+.obj-selector-arrow{font-size:18px;color:var(--text3)}
+
+/* OBJ SWITCHER BOTTOM SHEET */
+.obj-switcher-overlay{display:none;position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.4);align-items:flex-end;justify-content:center}
+.obj-switcher-overlay.open{display:flex}
+.obj-switcher{background:var(--surface);border-radius:var(--radius) var(--radius) 0 0;width:100%;max-width:480px;max-height:70vh;overflow-y:auto;padding-bottom:env(safe-area-inset-bottom,16px)}
+.obj-switcher-header{padding:12px 20px 14px;border-bottom:.5px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.obj-switcher-header h2{font-size:17px;font-weight:600}
+.obj-switcher-item{display:flex;align-items:center;gap:12px;padding:14px 20px;cursor:pointer;border-bottom:.5px solid var(--border)}
+.obj-switcher-item:active{background:var(--surface2)}
+.obj-switcher-item.active{background:var(--accent-light)}
+.obj-switcher-emoji{font-size:22px}
+.obj-switcher-info{flex:1}
+.obj-switcher-name{font-size:15px;font-weight:600}
+.obj-switcher-desc{font-size:12px;color:var(--text2);margin-top:2px}
+.obj-switcher-pct{font-size:14px;font-weight:700;color:var(--accent)}
+
+/* DAY PANEL */
+.day-panel{margin:14px 16px 0;background:var(--surface);border-radius:var(--radius);border:.5px solid var(--border);overflow:hidden}
+.day-panel-header{padding:14px 16px;border-bottom:.5px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.day-panel-header h3{font-size:15px;font-weight:600}
+.day-check-row{display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;border-bottom:.5px solid var(--border)}
+.day-check-row:active{background:var(--surface2)}
+.day-check-big{width:28px;height:28px;border-radius:8px;border:2px solid var(--border2);background:var(--surface);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.day-check-row.done .day-check-big{background:var(--accent);border-color:var(--accent)}
+.day-check-big svg{display:none}
+.day-check-row.done .day-check-big svg{display:block}
+.day-check-label{font-size:15px;font-weight:500}
+.day-check-row.done .day-check-label{color:var(--accent)}
+.day-note-section{padding:12px 16px 14px}
+.day-note-label{font-size:11px;font-weight:600;color:var(--text3);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px}
+.day-note-text{font-size:14px;line-height:1.65;color:var(--text);white-space:pre-wrap;word-break:break-word}
+.day-note-empty{font-size:14px;color:var(--text3);font-style:italic}
+.day-note-actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+
+/* DATA SCREEN */
+.data-section{padding:16px;display:flex;flex-direction:column;gap:12px}
+.data-card{background:var(--surface);border:.5px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.data-card-header{padding:14px 16px 10px;border-bottom:.5px solid var(--border)}
+.data-card-header h3{font-size:15px;font-weight:600;margin-bottom:3px}
+.data-card-header p{font-size:13px;color:var(--text2);line-height:1.5}
+.data-card-body{padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.data-stats{display:flex;gap:10px}
+.data-stat{flex:1;background:var(--surface2);border-radius:var(--radius-sm);padding:10px 12px;text-align:center}
+.data-stat-val{font-size:22px;font-weight:600;color:var(--accent)}
+.data-stat-lbl{font-size:11px;color:var(--text2);margin-top:2px}
+.import-zone{border:1.5px dashed var(--border2);border-radius:var(--radius-sm);padding:20px;text-align:center;cursor:pointer;background:var(--surface2)}
+.import-zone:active{background:var(--accent-light);border-color:var(--accent)}
+.import-zone p{font-size:14px;color:var(--text2);margin-top:6px}
+.import-zone .icon{font-size:28px}
+.merge-opts{display:flex;flex-direction:column;gap:8px}
+.merge-opt{display:flex;align-items:flex-start;gap:10px;background:var(--surface2);border-radius:var(--radius-sm);padding:12px 14px;cursor:pointer;border:1.5px solid transparent}
+.merge-opt.selected{border-color:var(--accent);background:var(--accent-light)}
+.merge-opt input{margin-top:3px;accent-color:var(--accent)}
+.merge-opt-label{font-size:14px;font-weight:500}
+.merge-opt-desc{font-size:12px;color:var(--text2);margin-top:2px}
+.warning-box{background:#fff8e1;border:.5px solid #f0c040;border-radius:var(--radius-sm);padding:10px 13px;font-size:13px;color:#7a5c00;line-height:1.5}
+
+/* TOAST */
+.toast{position:fixed;bottom:88px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:10px 20px;border-radius:20px;font-size:14px;z-index:300;opacity:0;transition:opacity .25s;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+
+<!-- OBJ SWITCHER -->
+<div class="obj-switcher-overlay" id="obj-switcher-overlay" onclick="closeObjSwitcher()">
+  <div class="obj-switcher" onclick="event.stopPropagation()">
+    <div class="obj-switcher-header">
+      <h2>Choisir un objectif</h2>
+      <button class="modal-close" onclick="closeObjSwitcher()">&#10005;</button>
+    </div>
+    <div id="obj-switcher-list"></div>
+  </div>
+</div>
+
+<!-- SCREEN: OBJECTIFS -->
+<div class="screen active" id="screen-objectifs">
+  <div class="header">
+    <div class="header-row">
+      <div>
+        <h1>Mes Objectifs</h1>
+        <div class="header-sub" id="obj-today-label"></div>
+      </div>
+      <button class="icon-btn" onclick="openNewObjectifModal()">
+        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
+    </div>
+  </div>
+  <div id="obj-progress-wrap"></div>
+  <div id="objectifs-today-list" style="padding:14px 16px;display:flex;flex-direction:column;gap:10px"></div>
+</div>
+
+<!-- SCREEN: AGENDA -->
+<div class="screen" id="screen-agenda">
+  <div class="header">
+    <div class="header-row">
+      <div>
+        <h1>Agenda</h1>
+        <div class="header-sub" id="agenda-today-label"></div>
+      </div>
+    </div>
+  </div>
+  <div class="obj-selector-wrap">
+    <div class="obj-selector" onclick="openObjSwitcher()">
+      <span class="obj-selector-emoji" id="sel-emoji">🎯</span>
+      <span class="obj-selector-name" id="sel-name">Choisir un objectif</span>
+      <span class="obj-selector-pct" id="sel-pct"></span>
+      <span class="obj-selector-arrow">▾</span>
+    </div>
+  </div>
+  <div class="calendar-section">
+    <div class="month-nav">
+      <button class="month-arrow" onclick="changeAgendaMonth(-1)">&#8249;</button>
+      <h2 id="agenda-month-title"></h2>
+      <button class="month-arrow" onclick="changeAgendaMonth(1)">&#8250;</button>
+    </div>
+    <div class="weekdays">
+      <div class="weekday">L</div><div class="weekday">M</div><div class="weekday">M</div>
+      <div class="weekday">J</div><div class="weekday">V</div><div class="weekday">S</div>
+      <div class="weekday">D</div>
+    </div>
+    <div class="cal-grid" id="agenda-cal-grid"></div>
+  </div>
+  <div class="day-panel" id="agenda-day-panel"></div>
+</div>
+
+<!-- SCREEN: DONNÉES -->
+<div class="screen" id="screen-data">
+  <div class="header">
+    <div class="header-row">
+      <div><h1>Données</h1><div class="header-sub">Sauvegarde &amp; restauration</div></div>
+    </div>
+  </div>
+  <div class="data-section">
+    <div class="data-card">
+      <div class="data-card-header"><h3>Résumé</h3><p>Données stockées localement sur cet appareil</p></div>
+      <div class="data-card-body">
+        <div class="data-stats">
+          <div class="data-stat"><div class="data-stat-val" id="stat-sessions">0</div><div class="data-stat-lbl">Séances</div></div>
+          <div class="data-stat"><div class="data-stat-val" id="stat-templates">0</div><div class="data-stat-lbl">Modèles</div></div>
+          <div class="data-stat"><div class="data-stat-val" id="stat-objectifs">0</div><div class="data-stat-lbl">Objectifs</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="data-card">
+      <div class="data-card-header"><h3>Exporter</h3><p>Télécharge toutes vos données dans un fichier <strong>.json</strong>.</p></div>
+      <div class="data-card-body">
+        <button class="btn btn-primary btn-full" onclick="exportData()">
+          <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Télécharger la sauvegarde
+        </button>
+      </div>
+    </div>
+    <div class="data-card">
+      <div class="data-card-header"><h3>Importer</h3><p>Restaurez une sauvegarde <strong>.json</strong> exportée depuis SportLog.</p></div>
+      <div class="data-card-body">
+        <div class="import-zone" onclick="document.getElementById('file-input').click()">
+          <div class="icon">📂</div>
+          <p>Appuyer pour choisir un fichier .json</p>
+        </div>
+        <input type="file" id="file-input" accept=".json,application/json" style="display:none" onchange="onFileSelected(event)">
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- NAV -->
+<nav class="nav">
+  <button class="nav-btn active" id="nav-objectifs" onclick="showScreen('objectifs')">
+    <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+    Objectifs
+  </button>
+  <button class="nav-btn" id="nav-agenda" onclick="showScreen('agenda')">
+    <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    Agenda
+  </button>
+  <button class="nav-btn" id="nav-data" onclick="showScreen('data')">
+    <svg viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+    Données
+  </button>
+</nav>
+
+<!-- MODAL: nouvel/edit objectif -->
+<div class="modal-overlay" id="modal-objectif">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <h2 id="modal-obj-title">Nouvel objectif</h2>
+      <button class="modal-close" onclick="closeModal('modal-objectif')">&#10005;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Emoji</label>
+        <input class="form-input" type="text" id="obj-emoji" placeholder="💧" maxlength="2" style="width:70px;text-align:center;font-size:22px">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Nom de l'objectif</label>
+        <input class="form-input" type="text" id="obj-name" placeholder="Ex : Boire 2L d'eau, Méditer…">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Description (optionnel)</label>
+        <input class="form-input" type="text" id="obj-desc" placeholder="Précisez si besoin…">
+      </div>
+      <div style="display:flex;gap:8px;margin-top:4px">
+        <button class="btn btn-primary" style="flex:1" onclick="saveObjectif()">Enregistrer</button>
+        <button id="btn-delete-obj" class="btn btn-danger" style="display:none" onclick="deleteObjectif()">Supprimer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: note du jour (avec toggle template) -->
+<div class="modal-overlay" id="modal-note">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <h2 id="modal-note-title">Note</h2>
+      <button class="modal-close" onclick="closeModal('modal-note')">&#10005;</button>
+    </div>
+    <div class="modal-body">
+      <div id="modal-note-date" style="font-size:13px;color:var(--text2);margin-bottom:14px"></div>
+
+      <!-- Toggle mode template (masqué : géré désormais via le toggle de l'agenda) -->
+      <div style="display:none">
+        <div class="toggle-row" onclick="toggleNoteMode()">
+          <div class="toggle-track" id="note-toggle-track"><div class="toggle-thumb"></div></div>
+          <span class="toggle-label" id="note-toggle-label">Utiliser un modèle / séance</span>
+        </div>
+      </div>
+
+      <!-- Boutons import (visibles si mode template activé) -->
+      <div id="note-template-btns" style="display:none" class="import-row">
+        <button class="btn btn-secondary" onclick="openNotePicker('template')">
+          <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          Depuis modèle
+        </button>
+        <button class="btn btn-secondary" onclick="openNotePicker('prev')">
+          <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
+          Note précédente
+        </button>
+      </div>
+
+      <!-- Champ note -->
+      <div class="form-group">
+        <label class="form-label" id="note-field-label">Note / Valeur</label>
+        <textarea class="form-input" id="note-text" placeholder="Ex : 2.1L, 8h de sommeil, séance cardio 30min…" style="min-height:100px"></textarea>
+      </div>
+
+      <!-- Bouton créer modèle (visible si mode template activé) -->
+      <div id="note-create-tpl-wrap" style="display:none;margin-bottom:14px">
+        <button class="btn btn-ghost btn-full" onclick="openCreateTemplateFromNote()">
+          <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+          Créer un modèle depuis cette note
+        </button>
+      </div>
+
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-primary" style="flex:1" onclick="saveNote()">Enregistrer</button>
+        <button id="btn-delete-note" class="btn btn-danger" style="display:none" onclick="deleteNote()">Supprimer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: picker (modèles ou notes précédentes) -->
+<div class="modal-overlay" id="modal-picker" style="z-index:200">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <h2 id="modal-picker-title">Choisir</h2>
+      <button class="modal-close" onclick="closeModal('modal-picker')">&#10005;</button>
+    </div>
+    <div class="modal-body">
+      <div id="picker-list" class="picker-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: créer/edit modèle -->
+<div class="modal-overlay" id="modal-template" style="z-index:200">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <h2 id="modal-tpl-title">Nouveau modèle</h2>
+      <button class="modal-close" onclick="closeModal('modal-template')">&#10005;</button>
+    </div>
+    <div class="modal-body">
+      <div id="modal-tpl-obj-label" style="font-size:13px;color:var(--accent);font-weight:600;margin-bottom:12px"></div>
+      <div class="form-group">
+        <label class="form-label">Nom du modèle</label>
+        <input class="form-input" type="text" id="tpl-name" placeholder="Ex : Push A, Cardio, Full body…">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Contenu</label>
+        <textarea class="form-input" id="tpl-content" placeholder="Décrivez librement…"></textarea>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-primary" style="flex:1" onclick="saveTemplate()">Enregistrer</button>
+        <button id="btn-delete-tpl" class="btn btn-danger" style="display:none" onclick="deleteTemplate()">Supprimer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: gérer les modèles d'un objectif -->
+<div class="modal-overlay" id="modal-obj-templates" style="z-index:150">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <h2 id="modal-obj-tpl-title">Modèles</h2>
+      <button class="modal-close" onclick="closeModal('modal-obj-templates')">&#10005;</button>
+    </div>
+    <div class="modal-body">
+      <div id="obj-tpl-list"></div>
+      <button class="btn btn-primary btn-full" style="margin-top:4px" onclick="openNewTemplate()">
+        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Nouveau modèle
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: import confirm -->
+<div class="modal-overlay" id="modal-import-confirm">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <h2>Importer les données</h2>
+      <button class="modal-close" onclick="closeModal('modal-import-confirm')">&#10005;</button>
+    </div>
+    <div class="modal-body">
+      <div id="import-file-summary" style="margin-bottom:14px"></div>
+      <p style="font-size:13px;font-weight:500;color:var(--text2);margin-bottom:10px">Mode d'import</p>
+      <div class="merge-opts">
+        <label class="merge-opt selected" id="opt-merge-label">
+          <input type="radio" name="merge-mode" value="merge" checked onchange="selectMergeOpt(this)">
+          <div><div class="merge-opt-label">Fusionner</div><div class="merge-opt-desc">Ajoute les nouvelles données sans effacer les vôtres.</div></div>
+        </label>
+        <label class="merge-opt" id="opt-replace-label">
+          <input type="radio" name="merge-mode" value="replace" onchange="selectMergeOpt(this)">
+          <div><div class="merge-opt-label">Remplacer tout</div><div class="merge-opt-desc">Efface toutes les données actuelles.</div></div>
+        </label>
+      </div>
+      <div class="warning-box" id="import-warning" style="margin-top:12px;display:none">⚠️ Cette action est irréversible.</div>
+      <button class="btn btn-primary btn-full" style="margin-top:14px" onclick="confirmImport()">Confirmer l'import</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ===== STORAGE ===== */
+const MONTHS_FR=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+const DAYS_SHORT=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
+
+function getData(k,def){try{return JSON.parse(localStorage.getItem(k))??def}catch{return def}}
+function setData(k,v){localStorage.setItem(k,JSON.stringify(v))}
+
+function getObjectifs(){return getData('objectifs',[])}
+function getChecks(){return getData('obj_checks',{})}
+// obj_entries: { objId: { 'YYYY-MM-DD': { text, isTemplate } } }
+function getEntries(){return getData('obj_entries',{})}
+// obj_templates: { objId: [ {id,name,content} ] }
+function getObjTemplates(objId){return getData('obj_tpl_'+objId,[])}
+function setObjTemplates(objId,v){setData('obj_tpl_'+objId,v)}
+// Legacy global templates (for import compat)
+function getGlobalTemplates(){return getData('templates',[])}
+
+function dateKey(y,m,d){return`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`}
+function todayKey(){const t=new Date();return dateKey(t.getFullYear(),t.getMonth(),t.getDate())}
+function fmtDate(key){const[y,m,d]=key.split('-').map(Number);return new Date(y,m-1,d).toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'})}
+function capFirst(s){return s.charAt(0).toUpperCase()+s.slice(1)}
+function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function lastNDays(n){const keys=[],now=new Date();for(let i=n-1;i>=0;i--){const d=new Date(now);d.setDate(now.getDate()-i);keys.push(dateKey(d.getFullYear(),d.getMonth(),d.getDate()))}return keys}
+function getRate(objId,dayKeys){const checks=getChecks();const done=dayKeys.filter(k=>checks[k]&&checks[k][objId]).length;return dayKeys.length>0?Math.round(done/dayKeys.length*100):0}
+function getStreak(objId){const checks=getChecks();let s=0,now=new Date();for(let i=0;i<365;i++){const d=new Date(now);d.setDate(now.getDate()-i);const k=dateKey(d.getFullYear(),d.getMonth(),d.getDate());if(checks[k]&&checks[k][objId])s++;else break}return s}
+
+/* ===== SCREENS ===== */
+function showScreen(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('screen-'+name).classList.add('active');
+  const nb=document.getElementById('nav-'+name);if(nb)nb.classList.add('active');
+  if(name==='objectifs')renderObjectifsToday();
+  if(name==='agenda')renderAgenda();
+  if(name==='data')renderDataScreen();
+}
+
+/* ===== OBJECTIFS TODAY ===== */
+function renderObjectifsToday(){
+  const now=new Date();
+  document.getElementById('obj-today-label').textContent=capFirst(now.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'}));
+  const objectifs=getObjectifs(),checks=getChecks(),today=todayKey(),todayChecks=checks[today]||{};
+
+  const wrap=document.getElementById('obj-progress-wrap');
+  if(objectifs.length){
+    const done=objectifs.filter(o=>todayChecks[o.id]).length;
+    const pct=Math.round(done/objectifs.length*100);
+    wrap.innerHTML=`<div class="progress-bar-wrap"><div class="progress-bar-label"><span>${done}/${objectifs.length} objectifs</span><span>${pct}%</span></div><div class="progress-bar-track"><div class="progress-bar-fill" style="width:${pct}%"></div></div></div>`;
+  }else{wrap.innerHTML=''}
+
+  const container=document.getElementById('objectifs-today-list');
+  if(!objectifs.length){
+    container.innerHTML=`<div class="empty-state"><div class="icon">🎯</div><p>Aucun objectif créé.<br>Appuyez sur + pour en ajouter un.</p></div>`;
+    return;
+  }
+  container.innerHTML=objectifs.map(obj=>{
+    const checked=!!todayChecks[obj.id];
+    const streak=getStreak(obj.id);
+    return`<div class="obj-check-item${checked?' checked':''}" onclick="toggleCheck('${obj.id}')">
+      <div class="obj-checkbox"><svg viewBox="0 0 24 24" width="14" height="14" stroke="#fff" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:8px"><span style="font-size:18px">${obj.emoji||'🎯'}</span><span class="obj-label">${escHtml(obj.name)}</span></div>
+        ${obj.desc?`<div style="font-size:12px;color:var(--text3);margin-top:2px;padding-left:26px">${escHtml(obj.desc)}</div>`:''}
+      </div>
+      ${streak>1?`<div style="font-size:12px;color:var(--warning);font-weight:600;flex-shrink:0">🔥${streak}j</div>`:''}
+      <button onclick="event.stopPropagation();switchAgendaToObj('${obj.id}')" style="background:none;border:none;color:var(--text3);font-size:20px;cursor:pointer;padding:4px;flex-shrink:0;line-height:1">›</button>
+    </div>`;
+  }).join('');
+}
+
+function toggleCheck(objId){
+  const checks=getChecks(),today=todayKey();
+  if(!checks[today])checks[today]={};
+  checks[today][objId]=!checks[today][objId];
+  setData('obj_checks',checks);
+  renderObjectifsToday();
+}
+
+/* ===== OBJECTIF MODAL ===== */
+let editingObjId=null;
+function openNewObjectifModal(){
+  editingObjId=null;
+  document.getElementById('modal-obj-title').textContent='Nouvel objectif';
+  document.getElementById('obj-emoji').value='';
+  document.getElementById('obj-name').value='';
+  document.getElementById('obj-desc').value='';
+  document.getElementById('btn-delete-obj').style.display='none';
+  openModal('modal-objectif');
+}
+function editObjectifModal(objId){
+  const obj=getObjectifs().find(o=>o.id===objId);if(!obj)return;
+  editingObjId=objId;
+  document.getElementById('modal-obj-title').textContent="Modifier l'objectif";
+  document.getElementById('obj-emoji').value=obj.emoji||'';
+  document.getElementById('obj-name').value=obj.name;
+  document.getElementById('obj-desc').value=obj.desc||'';
+  document.getElementById('btn-delete-obj').style.display='flex';
+  openModal('modal-objectif');
+}
+function saveObjectif(){
+  const name=document.getElementById('obj-name').value.trim();
+  if(!name){showToast("Donnez un nom à l'objectif");return}
+  const emoji=document.getElementById('obj-emoji').value.trim()||'🎯';
+  const desc=document.getElementById('obj-desc').value.trim();
+  const objectifs=getObjectifs();
+  if(editingObjId){
+    const idx=objectifs.findIndex(o=>o.id===editingObjId);
+    if(idx>=0)objectifs[idx]={...objectifs[idx],name,emoji,desc};
+  }else{
+    objectifs.push({id:Date.now().toString(),name,emoji,desc});
+  }
+  setData('objectifs',objectifs);
+  closeModal('modal-objectif');
+  renderObjectifsToday();
+  if(document.getElementById('screen-agenda').classList.contains('active'))renderAgenda();
+  showToast(editingObjId?'Objectif mis à jour':'Objectif créé');
+}
+function deleteObjectif(){
+  if(!confirm('Supprimer cet objectif et tout son historique ?'))return;
+  setData('objectifs',getObjectifs().filter(o=>o.id!==editingObjId));
+  if(agendaObjId===editingObjId)agendaObjId=null;
+  closeModal('modal-objectif');
+  renderObjectifsToday();
+  if(document.getElementById('screen-agenda').classList.contains('active'))renderAgenda();
+  showToast('Objectif supprimé');
+}
+
+/* ===== AGENDA ===== */
+let agendaObjId=null,agendaMonth,agendaYear,agendaSelDate;
+
+function switchAgendaToObj(objId){agendaObjId=objId;showScreen('agenda')}
+
+function renderAgenda(){
+  const now=new Date();
+  document.getElementById('agenda-today-label').textContent=capFirst(now.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'}));
+  if(agendaMonth==null)agendaMonth=now.getMonth();
+  if(!agendaYear)agendaYear=now.getFullYear();
+  if(!agendaSelDate)agendaSelDate=todayKey();
+  if(!agendaObjId){const o=getObjectifs();if(o.length)agendaObjId=o[0].id}
+  renderAgendaSelector();
+  renderAgendaCalendar();
+  renderAgendaDayPanel();
+}
+
+function renderAgendaSelector(){
+  const obj=getObjectifs().find(o=>o.id===agendaObjId);
+  if(!obj){
+    document.getElementById('sel-emoji').textContent='🎯';
+    document.getElementById('sel-name').textContent=getObjectifs().length?'Choisir un objectif':'Aucun objectif';
+    document.getElementById('sel-pct').textContent='';
+    return;
+  }
+  document.getElementById('sel-emoji').textContent=obj.emoji||'🎯';
+  document.getElementById('sel-name').textContent=obj.name;
+  document.getElementById('sel-pct').textContent=getRate(obj.id,lastNDays(30))+'%';
+}
+
+function openObjSwitcher(){
+  const objectifs=getObjectifs();
+  const list=document.getElementById('obj-switcher-list');
+  if(!objectifs.length){
+    list.innerHTML=`<div style="padding:24px;text-align:center;color:var(--text2);font-size:14px">Aucun objectif créé.</div>`;
+  }else{
+    const days30=lastNDays(30);
+    list.innerHTML=objectifs.map(obj=>{
+      const pct=getRate(obj.id,days30);
+      return`<div class="obj-switcher-item${obj.id===agendaObjId?' active':''}" onclick="selectAgendaObj('${obj.id}')">
+        <div class="obj-switcher-emoji">${obj.emoji||'🎯'}</div>
+        <div class="obj-switcher-info"><div class="obj-switcher-name">${escHtml(obj.name)}</div>${obj.desc?`<div class="obj-switcher-desc">${escHtml(obj.desc)}</div>`:''}</div>
+        <div class="obj-switcher-pct">${pct}%</div>
+      </div>`;
+    }).join('');
+  }
+  document.getElementById('obj-switcher-overlay').classList.add('open');
+}
+function closeObjSwitcher(){document.getElementById('obj-switcher-overlay').classList.remove('open')}
+function selectAgendaObj(objId){agendaObjId=objId;closeObjSwitcher();renderAgendaSelector();renderAgendaCalendar();renderAgendaDayPanel()}
+
+function changeAgendaMonth(dir){
+  agendaMonth+=dir;
+  if(agendaMonth>11){agendaMonth=0;agendaYear++}
+  if(agendaMonth<0){agendaMonth=11;agendaYear--}
+  renderAgendaCalendar();
+}
+
+function renderAgendaCalendar(){
+  document.getElementById('agenda-month-title').textContent=`${MONTHS_FR[agendaMonth]} ${agendaYear}`;
+  const grid=document.getElementById('agenda-cal-grid');
+  grid.innerHTML='';
+  const checks=getChecks();
+  const allEntries=getEntries();
+  const objEntries=agendaObjId?(allEntries[agendaObjId]||{}):{};
+  const todayStr=todayKey();
+  const first=new Date(agendaYear,agendaMonth,1);
+  const last=new Date(agendaYear,agendaMonth+1,0);
+  let startDay=first.getDay();startDay=startDay===0?6:startDay-1;
+  for(let i=0;i<startDay;i++){const el=document.createElement('div');el.className='cal-day empty';grid.appendChild(el)}
+  for(let d=1;d<=last.getDate();d++){
+    const key=dateKey(agendaYear,agendaMonth,d);
+    const el=document.createElement('button');
+    el.className='cal-day';
+    el.textContent=d;
+    if(key===todayStr)el.classList.add('today');
+    if(key===agendaSelDate)el.classList.add('selected');
+    if(agendaObjId&&checks[key]&&checks[key][agendaObjId])el.classList.add('checked-day');
+    if(objEntries[key])el.classList.add('has-entry');
+    el.onclick=()=>{agendaSelDate=key;renderAgendaCalendar();renderAgendaDayPanel()};
+    grid.appendChild(el);
+  }
+}
+
+function getObjTplModeOn(objId){return !!getData('obj_tplmode_'+objId,false)}
+function setObjTplModeOn(objId,v){setData('obj_tplmode_'+objId,v)}
+
+function renderAgendaDayPanel(){
+  const panel=document.getElementById('agenda-day-panel');
+  if(!agendaObjId){panel.innerHTML=`<div style="padding:20px 16px;text-align:center;color:var(--text3);font-size:14px">Sélectionnez un objectif ci-dessus.</div>`;return}
+  const checks=getChecks();
+  const isChecked=!!(checks[agendaSelDate]&&checks[agendaSelDate][agendaObjId]);
+  const allEntries=getEntries();
+  const entry=(allEntries[agendaObjId]||{})[agendaSelDate];
+  const today=todayKey();
+  const isFuture=agendaSelDate>today;
+  const dateLabel=capFirst(fmtDate(agendaSelDate));
+  const noteText=entry?entry.text:'';
+  const isTplMode=entry?!!entry.isTemplate:false;
+  const tplModeOn=getObjTplModeOn(agendaObjId);
+
+  panel.innerHTML=`
+    <div class="day-panel-header">
+      <h3>${dateLabel}</h3>
+      ${isChecked?`<span class="tag">✓ Réussi</span>`:(isFuture?'':`<span style="font-size:11px;color:var(--text3)">Non coché</span>`)}
+    </div>
+    <div class="day-check-row${isChecked?' done':''}" style="${isFuture?'opacity:.4;cursor:default':'cursor:pointer'}" ${isFuture?'':`onclick="toggleAgendaCheck('${agendaObjId}','${agendaSelDate}')"`}>
+      <div class="day-check-big">
+        <svg viewBox="0 0 24 24" width="15" height="15" stroke="#fff" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      <span class="day-check-label">${isFuture?'Jour à venir':(isChecked?'Objectif réussi ce jour':'Marquer comme réussi')}</span>
+    </div>
+    <div class="day-note-section">
+      <div class="day-note-label">Note / Valeur</div>
+      ${noteText
+        ?`<div class="day-note-text">${escHtml(noteText)}</div>
+           <div class="day-note-actions">
+             <button class="btn btn-secondary btn-sm" onclick="openNoteModal(true)">✏️ Modifier</button>
+             <button class="btn btn-danger btn-sm" onclick="deleteNote()">🗑</button>
+           </div>`
+        :`<div class="day-note-empty">Ajouter une note, une valeur…</div>
+           <div class="day-note-actions">
+             <button class="btn btn-secondary btn-sm" onclick="openNoteModal(false)">+ Ajouter une note</button>
+           </div>`
+      }
+    </div>
+    <div style="padding:12px 16px;display:flex;align-items:center;justify-content:space-between;border-top:.5px solid var(--border)">
+      <div class="toggle-row" style="padding:0" onclick="toggleObjTplMode('${agendaObjId}')">
+        <div class="toggle-track${tplModeOn?' on':''}" id="agenda-tplmode-track"><div class="toggle-thumb"></div></div>
+        <span class="toggle-label" id="agenda-tplmode-label" style="${tplModeOn?'color:var(--accent)':''}">Template ${tplModeOn?'activé':'désactivé'}</span>
+      </div>
+      ${tplModeOn?`<button class="icon-btn" onclick="openObjTemplatesModal()" title="Gérer les modèles" style="background:none;border:none;cursor:pointer;color:var(--accent);padding:4px;display:flex;align-items:center">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
+      </button>`:''}
+    </div>`;
+}
+
+function toggleObjTplMode(objId){
+  setObjTplModeOn(objId,!getObjTplModeOn(objId));
+  renderAgendaDayPanel();
+}
+
+function toggleAgendaCheck(objId,dateStr){
+  const checks=getChecks();
+  if(!checks[dateStr])checks[dateStr]={};
+  checks[dateStr][objId]=!checks[dateStr][objId];
+  setData('obj_checks',checks);
+  renderAgendaCalendar();
+  renderAgendaDayPanel();
+}
+
+/* ===== NOTE MODAL ===== */
+let noteModalIsTemplate=false;
+
+function openNoteModal(editing){
+  const allEntries=getEntries();
+  const entry=(allEntries[agendaObjId]||{})[agendaSelDate];
+  const existing=entry?entry.text:'';
+  noteModalIsTemplate=entry?!!entry.isTemplate:getObjTplModeOn(agendaObjId);
+  const tplModeOn=getObjTplModeOn(agendaObjId);
+
+  document.getElementById('modal-note-title').textContent=editing?'Modifier la note':'Ajouter une note';
+  document.getElementById('modal-note-date').textContent=capFirst(fmtDate(agendaSelDate));
+  document.getElementById('note-text').value=existing;
+  document.getElementById('btn-delete-note').style.display=existing?'flex':'none';
+  document.getElementById('note-field-label').textContent='Note / Valeur';
+  document.getElementById('note-template-btns').style.display=tplModeOn?'flex':'none';
+  const createWrap=document.getElementById('note-create-tpl-wrap');
+  if(createWrap)createWrap.style.display=tplModeOn?'block':'none';
+  openModal('modal-note');
+}
+
+function setNoteModeUI(isTemplate){
+  noteModalIsTemplate=isTemplate;
+  const track=document.getElementById('note-toggle-track');
+  const label=document.getElementById('note-toggle-label');
+  const btns=document.getElementById('note-template-btns');
+  const createWrap=document.getElementById('note-create-tpl-wrap');
+  const fieldLabel=document.getElementById('note-field-label');
+  if(isTemplate){
+    track.classList.add('on');
+    label.textContent='Mode modèle activé';
+    btns.style.display='flex';
+    createWrap.style.display='block';
+    fieldLabel.textContent='Note (modèle / séance)';
+  }else{
+    track.classList.remove('on');
+    label.textContent='Utiliser un modèle / séance';
+    btns.style.display='none';
+    createWrap.style.display='none';
+    fieldLabel.textContent='Note / Valeur';
+  }
+}
+
+function toggleNoteMode(){setNoteModeUI(!noteModalIsTemplate)}
+
+function saveNote(){
+  const text=document.getElementById('note-text').value.trim();
+  if(!text){showToast('Ajoutez du texte');return}
+  const allEntries=getEntries();
+  if(!allEntries[agendaObjId])allEntries[agendaObjId]={};
+  allEntries[agendaObjId][agendaSelDate]={text,isTemplate:noteModalIsTemplate};
+  setData('obj_entries',allEntries);
+  closeModal('modal-note');
+  renderAgendaCalendar();
+  renderAgendaDayPanel();
+  showToast('Note enregistrée');
+}
+
+function deleteNote(){
+  const allEntries=getEntries();
+  if(allEntries[agendaObjId])delete allEntries[agendaObjId][agendaSelDate];
+  setData('obj_entries',allEntries);
+  closeModal('modal-note');
+  renderAgendaCalendar();
+  renderAgendaDayPanel();
+  showToast('Note supprimée');
+}
+
+/* ===== PICKER (modèles ou notes précédentes) ===== */
+function openNotePicker(type){
+  const list=document.getElementById('picker-list');
+  list.innerHTML='';
+  if(type==='template'){
+    document.getElementById('modal-picker-title').textContent='Choisir un modèle';
+    // Modèles propres à cet objectif
+    const tpls=getObjTemplates(agendaObjId);
+    if(!tpls.length){
+      list.innerHTML=`<div class="empty-state" style="padding:20px 0"><div class="icon" style="font-size:28px">📋</div><p>Aucun modèle pour cet objectif.<br>Créez-en un depuis le bouton ci-dessous.</p></div>`;
+    }else{
+      tpls.forEach(t=>{
+        const el=document.createElement('div');el.className='picker-item';
+        el.innerHTML=`<div class="picker-item-name">${escHtml(t.name)}</div><div class="picker-item-preview">${escHtml(t.content.substring(0,80))}${t.content.length>80?'…':''}</div>`;
+        el.onclick=()=>{document.getElementById('note-text').value=t.content;closeModal('modal-picker');showToast('Modèle importé')};
+        list.appendChild(el);
+      });
+    }
+  }else{
+    document.getElementById('modal-picker-title').textContent='Note précédente';
+    const allEntries=getEntries();
+    const objEntries=agendaObjId?(allEntries[agendaObjId]||{}):{};
+    const keys=Object.keys(objEntries).sort().reverse().filter(k=>k!==agendaSelDate);
+    if(!keys.length){
+      list.innerHTML=`<div class="empty-state" style="padding:20px 0"><div class="icon" style="font-size:28px">📅</div><p>Aucune note précédente.</p></div>`;
+    }else{
+      keys.slice(0,30).forEach(k=>{
+        const entry=objEntries[k];
+        const text=typeof entry==='string'?entry:entry.text;
+        const el=document.createElement('div');el.className='picker-item';
+        el.innerHTML=`<div class="picker-item-name">${escHtml(capFirst(fmtDate(k)))}</div>${entry.isTemplate?'<div class="picker-item-sub">📋 modèle</div>':''}<div class="picker-item-preview">${escHtml(text.substring(0,80))}${text.length>80?'…':''}</div>`;
+        el.onclick=()=>{document.getElementById('note-text').value=text;closeModal('modal-picker');showToast('Note importée')};
+        list.appendChild(el);
+      });
+    }
+  }
+  openModal('modal-picker');
+}
+
+/* ===== MODÈLES PAR OBJECTIF ===== */
+let editingTplId=null;
+
+function openObjTemplatesModal(){
+  const obj=getObjectifs().find(o=>o.id===agendaObjId);
+  document.getElementById('modal-obj-tpl-title').textContent=`Modèles — ${obj?obj.name:''}`;
+  renderObjTemplatesList();
+  openModal('modal-obj-templates');
+}
+
+function renderObjTemplatesList(){
+  const tpls=getObjTemplates(agendaObjId);
+  const container=document.getElementById('obj-tpl-list');
+  if(!tpls.length){
+    container.innerHTML=`<div class="empty-state" style="padding:20px 0"><div class="icon" style="font-size:28px">📋</div><p>Aucun modèle pour cet objectif.</p></div>`;
+    return;
+  }
+  container.innerHTML=tpls.map(t=>`
+    <div class="template-card">
+      <div class="template-info">
+        <div class="template-name">${escHtml(t.name)}</div>
+        <div class="template-preview">${escHtml(t.content.substring(0,70))}${t.content.length>70?'…':''}</div>
+      </div>
+      <div class="template-actions">
+        <button class="icon-btn-sm" onclick="editTemplate('${t.id}')">✏️</button>
+        <button class="icon-btn-sm danger" onclick="deleteTemplateDirect('${t.id}')">🗑</button>
+      </div>
+    </div>`).join('');
+}
+
+function openNewTemplate(){
+  editingTplId=null;
+  const obj=getObjectifs().find(o=>o.id===agendaObjId);
+  document.getElementById('modal-tpl-title').textContent='Nouveau modèle';
+  document.getElementById('modal-tpl-obj-label').textContent=obj?`${obj.emoji||'🎯'} ${obj.name}`:'';
+  document.getElementById('tpl-name').value='';
+  document.getElementById('tpl-content').value='';
+  document.getElementById('btn-delete-tpl').style.display='none';
+  openModal('modal-template');
+}
+
+function openCreateTemplateFromNote(){
+  const content=document.getElementById('note-text').value.trim();
+  editingTplId=null;
+  const obj=getObjectifs().find(o=>o.id===agendaObjId);
+  document.getElementById('modal-tpl-title').textContent='Créer un modèle';
+  document.getElementById('modal-tpl-obj-label').textContent=obj?`${obj.emoji||'🎯'} ${obj.name}`:'';
+  document.getElementById('tpl-name').value='';
+  document.getElementById('tpl-content').value=content;
+  document.getElementById('btn-delete-tpl').style.display='none';
+  openModal('modal-template');
+}
+
+function editTemplate(id){
+  const tpls=getObjTemplates(agendaObjId);
+  const t=tpls.find(x=>x.id===id);if(!t)return;
+  editingTplId=id;
+  const obj=getObjectifs().find(o=>o.id===agendaObjId);
+  document.getElementById('modal-tpl-title').textContent='Modifier le modèle';
+  document.getElementById('modal-tpl-obj-label').textContent=obj?`${obj.emoji||'🎯'} ${obj.name}`:'';
+  document.getElementById('tpl-name').value=t.name;
+  document.getElementById('tpl-content').value=t.content;
+  document.getElementById('btn-delete-tpl').style.display='flex';
+  openModal('modal-template');
+}
+
+function saveTemplate(){
+  const name=document.getElementById('tpl-name').value.trim();
+  const content=document.getElementById('tpl-content').value.trim();
+  if(!name){showToast('Donnez un nom au modèle');return}
+  if(!content){showToast('Ajoutez du contenu');return}
+  const tpls=getObjTemplates(agendaObjId);
+  if(editingTplId){
+    const idx=tpls.findIndex(x=>x.id===editingTplId);
+    if(idx>=0)tpls[idx]={...tpls[idx],name,content};
+  }else{
+    tpls.push({id:Date.now().toString(),name,content});
+  }
+  setObjTemplates(agendaObjId,tpls);
+  closeModal('modal-template');
+  renderObjTemplatesList();
+  showToast(editingTplId?'Modèle mis à jour':'Modèle créé');
+}
+
+function deleteTemplate(){
+  if(!confirm('Supprimer ce modèle ?'))return;
+  setObjTemplates(agendaObjId,getObjTemplates(agendaObjId).filter(x=>x.id!==editingTplId));
+  closeModal('modal-template');
+  renderObjTemplatesList();
+  showToast('Modèle supprimé');
+}
+function deleteTemplateDirect(id){
+  if(!confirm('Supprimer ce modèle ?'))return;
+  setObjTemplates(agendaObjId,getObjTemplates(agendaObjId).filter(x=>x.id!==id));
+  renderObjTemplatesList();
+  showToast('Modèle supprimé');
+}
+
+/* ===== DATA ===== */
+function renderDataScreen(){
+  const allEntries=getEntries();
+  const entryCount=Object.values(allEntries).reduce((a,v)=>a+Object.keys(v).length,0);
+  document.getElementById('stat-sessions').textContent=entryCount;
+  const objIds=getObjectifs().map(o=>o.id);
+  const tplCount=objIds.reduce((a,id)=>a+getObjTemplates(id).length,0)+getGlobalTemplates().length;
+  document.getElementById('stat-templates').textContent=tplCount;
+  document.getElementById('stat-objectifs').textContent=getObjectifs().length;
+}
+
+function exportData(){
+  // Bundle per-objectif templates
+  const objIds=getObjectifs().map(o=>o.id);
+  const obj_templates={};
+  objIds.forEach(id=>{const t=getObjTemplates(id);if(t.length)obj_templates[id]=t});
+  const payload={
+    version:5,exportedAt:new Date().toISOString(),
+    sessions:getData('sessions_v2',{}),
+    templates:getGlobalTemplates(),
+    objectifs:getObjectifs(),
+    obj_checks:getChecks(),
+    obj_entries:getEntries(),
+    obj_templates
+  };
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=`sportlog-${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+  showToast('Sauvegarde téléchargée');
+}
+
+let pendingImport=null;
+
+function migrateImport(data){
+  data.sessions=data.sessions||{};
+  data.templates=data.templates||[];
+  data.objectifs=data.objectifs||[];
+  data.obj_checks=data.obj_checks||{};
+  data.obj_entries=data.obj_entries||{};
+  data.obj_templates=data.obj_templates||{};
+
+  // Migrate global templates → attach to matching objectif by name
+  if(data.templates.length){
+    data.objectifs.forEach(obj=>{
+      const matching=data.templates.filter(t=>t.name&&t.name.toLowerCase()===obj.name.toLowerCase());
+      if(matching.length){
+        if(!data.obj_templates[obj.id])data.obj_templates[obj.id]=[];
+        const existIds=new Set(data.obj_templates[obj.id].map(x=>x.id));
+        matching.forEach(t=>{if(!existIds.has(t.id))data.obj_templates[obj.id].push(t)});
+      }
+    });
+    // Remaining templates → attach to sport objectif if exists, else keep as-is for display
+    const sportObj=data.objectifs.find(o=>o.name&&o.name.toLowerCase()==='sport');
+    if(sportObj){
+      const unmatched=data.templates.filter(t=>!data.objectifs.some(o=>o.name&&o.name.toLowerCase()===t.name.toLowerCase()));
+      if(unmatched.length){
+        if(!data.obj_templates[sportObj.id])data.obj_templates[sportObj.id]=[];
+        const existIds=new Set(data.obj_templates[sportObj.id].map(x=>x.id));
+        unmatched.forEach(t=>{if(!existIds.has(t.id))data.obj_templates[sportObj.id].push(t)});
+      }
+    }
+  }
+
+  // Migrate old sessions → notes in Sport objectif agenda
+  const sportObj=data.objectifs.find(o=>o.name&&o.name.toLowerCase()==='sport');
+  if(sportObj&&Object.keys(data.sessions).length>0){
+    if(!data.obj_entries[sportObj.id])data.obj_entries[sportObj.id]={};
+    Object.entries(data.sessions).forEach(([dateStr,sess])=>{
+      if(!data.obj_entries[sportObj.id][dateStr]){
+        data.obj_entries[sportObj.id][dateStr]={text:sess.name?`[${sess.name}]\n${sess.content}`:sess.content,isTemplate:true};
+      }
+      if(!data.obj_checks[dateStr])data.obj_checks[dateStr]={};
+      if(data.obj_checks[dateStr][sportObj.id]===undefined)data.obj_checks[dateStr][sportObj.id]=true;
+    });
+  }
+
+  // Normalise old string entries → {text, isTemplate:false}
+  Object.keys(data.obj_entries).forEach(objId=>{
+    Object.keys(data.obj_entries[objId]).forEach(dateStr=>{
+      const v=data.obj_entries[objId][dateStr];
+      if(typeof v==='string')data.obj_entries[objId][dateStr]={text:v,isTemplate:false};
+    });
+  });
+
+  return data;
+}
+
+function onFileSelected(event){
+  const file=event.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      let data=JSON.parse(e.target.result);
+      if(!data.sessions&&!data.templates&&!data.objectifs&&!data.obj_checks)throw new Error();
+      data=migrateImport(data);
+      pendingImport=data;
+      const exportDate=data.exportedAt?new Date(data.exportedAt).toLocaleDateString('fr-FR'):'inconnue';
+      const version=data.version?'v'+data.version:'ancienne version';
+      const sportObj=data.objectifs.find(o=>o.name&&o.name.toLowerCase()==='sport');
+      const sessCount=Object.keys(data.sessions).length;
+      const tplCount=Object.values(data.obj_templates).reduce((a,v)=>a+v.length,0);
+      const migNote=(sportObj&&sessCount>0)?`<div style="color:var(--accent);margin-top:4px">↗ ${sessCount} séance(s) sport → agenda « ${escHtml(sportObj.name)} »</div>`:'';
+      const tplNote=tplCount>0?`<div style="color:var(--accent2);margin-top:2px">📋 ${tplCount} modèle(s) rattachés aux objectifs</div>`:'';
+      document.getElementById('import-file-summary').innerHTML=`<div style="background:var(--surface2);border-radius:var(--radius-sm);padding:12px 14px;font-size:13px;line-height:1.8"><div><strong>${escHtml(file.name)}</strong> <span style="color:var(--text3)">${version}</span></div><div style="color:var(--text2)">Exporté le : ${exportDate}</div><div style="color:var(--text2)">${(data.objectifs||[]).length} objectif(s)</div>${migNote}${tplNote}</div>`;
+      document.getElementById('import-warning').style.display='none';
+      document.querySelector('input[name="merge-mode"][value="merge"]').checked=true;
+      document.getElementById('opt-merge-label').classList.add('selected');
+      document.getElementById('opt-replace-label').classList.remove('selected');
+      openModal('modal-import-confirm');
+    }catch{showToast('Fichier invalide ou corrompu')}
+    event.target.value='';
+  };
+  reader.readAsText(file);
+}
+
+function selectMergeOpt(radio){
+  document.getElementById('opt-merge-label').classList.toggle('selected',radio.value==='merge');
+  document.getElementById('opt-replace-label').classList.toggle('selected',radio.value==='replace');
+  document.getElementById('import-warning').style.display=radio.value==='replace'?'block':'none';
+}
+
+function confirmImport(){
+  if(!pendingImport)return;
+  const mode=document.querySelector('input[name="merge-mode"]:checked').value;
+  if(mode==='replace'){
+    setData('sessions_v2',pendingImport.sessions);
+    setData('templates',pendingImport.templates);
+    setData('objectifs',pendingImport.objectifs);
+    setData('obj_checks',pendingImport.obj_checks);
+    setData('obj_entries',pendingImport.obj_entries);
+    Object.entries(pendingImport.obj_templates||{}).forEach(([id,v])=>setObjTemplates(id,v));
+  }else{
+    // sessions
+    const es=getData('sessions_v2',{});setData('sessions_v2',{...pendingImport.sessions,...es});
+    // templates global
+    const et=getGlobalTemplates();const etIds=new Set(et.map(t=>t.id));setData('templates',[...et,...(pendingImport.templates||[]).filter(t=>!etIds.has(t.id))]);
+    // objectifs
+    const eo=getObjectifs();const eoIds=new Set(eo.map(o=>o.id));setData('objectifs',[...eo,...(pendingImport.objectifs||[]).filter(o=>!eoIds.has(o.id))]);
+    // checks
+    const ec=getChecks();const mc={...pendingImport.obj_checks};Object.keys(ec).forEach(k=>{mc[k]={...(mc[k]||{}),...ec[k]}});setData('obj_checks',mc);
+    // entries
+    const ee=getEntries();const me={...pendingImport.obj_entries};Object.keys(ee).forEach(oid=>{if(!me[oid])me[oid]={};Object.assign(me[oid],ee[oid])});setData('obj_entries',me);
+    // obj_templates
+    Object.entries(pendingImport.obj_templates||{}).forEach(([id,newTpls])=>{
+      const ex=getObjTemplates(id);const exIds=new Set(ex.map(t=>t.id));
+      setObjTemplates(id,[...ex,...newTpls.filter(t=>!exIds.has(t.id))]);
+    });
+  }
+  pendingImport=null;
+  closeModal('modal-import-confirm');
+  renderDataScreen();
+  showToast('Import réussi');
+}
+
+/* MODALS */
+function openModal(id){document.getElementById(id).classList.add('open')}
+function closeModal(id){document.getElementById(id).classList.remove('open')}
+document.querySelectorAll('.modal-overlay').forEach(overlay=>{
+  overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.classList.remove('open')});
+});
+
+function showToast(msg){
+  const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+/* INIT */
+function init(){
+  const now=new Date();
+  agendaMonth=now.getMonth();agendaYear=now.getFullYear();agendaSelDate=todayKey();
+  renderObjectifsToday();
+}
+init();
+
+/* SERVICE WORKER */
+const swCode=`const C='sportlog-v4';self.addEventListener('install',e=>{self.skipWaiting()});self.addEventListener('activate',e=>{e.waitUntil(clients.claim())});self.addEventListener('fetch',e=>{e.respondWith(caches.open(C).then(c=>c.match(e.request).then(r=>{const f=fetch(e.request).then(res=>{if(res&&res.status===200)c.put(e.request,res.clone());return res}).catch(()=>r);return r||f})))})`;
+if('serviceWorker' in navigator)navigator.serviceWorker.register(URL.createObjectURL(new Blob([swCode],{type:'application/javascript'}))).catch(()=>{});
+
+/* INSTALL BANNER */
+let deferredPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;showInstallBanner()});
+function showInstallBanner(){
+  if(document.getElementById('install-banner'))return;
+  const b=document.createElement('div');b.id='install-banner';
+  b.style.cssText='position:fixed;bottom:72px;left:50%;transform:translateX(-50%);width:calc(100% - 32px);max-width:448px;background:#2d6a4f;color:#fff;border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:12px;z-index:400;box-shadow:0 4px 20px rgba(0,0,0,.25);font-family:-apple-system,sans-serif';
+  b.innerHTML='<span style="font-size:26px">📲</span><div style="flex:1"><div style="font-size:14px;font-weight:600">Installer SportLog</div><div style="font-size:12px;opacity:.85">Accès rapide depuis votre écran d\'accueil</div></div><button onclick="installApp()" style="background:#fff;color:#2d6a4f;border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer">Installer</button><button onclick="dismissBanner()" style="background:none;border:none;color:#fff;font-size:20px;cursor:pointer;padding:0 4px">×</button>';
+  document.body.appendChild(b);
+}
+function installApp(){if(!deferredPrompt)return;deferredPrompt.prompt();deferredPrompt.userChoice.then(()=>{deferredPrompt=null;dismissBanner()})}
+function dismissBanner(){const b=document.getElementById('install-banner');if(b)b.remove()}
+window.addEventListener('appinstalled',()=>{dismissBanner();showToast('SportLog installé !')});
+</script>
+</body>
+</html>
