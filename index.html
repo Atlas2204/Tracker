@@ -7,13 +7,13 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="SportLog">
-<title>SportLog</title>
+<meta name="apple-mobile-web-app-title" content="Focus">
+<title>Focus</title>
 <script>
 const manifestData = {
-  name:"SportLog",short_name:"SportLog",start_url:".",display:"standalone",
+  name:"Focus",short_name:"Focus",start_url:".",display:"standalone",
   background_color:"#f8f7f4",theme_color:"#2d6a4f",orientation:"portrait",
-  icons:[{src:"data:image/svg+xml,"+encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' rx='40' fill='%232d6a4f'/><text x='96' y='130' text-anchor='middle' font-size='110' font-family='Arial'>🏋️</text></svg>`),sizes:"192x192",type:"image/svg+xml"}]
+  icons:[{src:"data:image/svg+xml,"+encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' rx='40' fill='%232d6a4f'/><circle cx='96' cy='96' r='58' fill='none' stroke='white' stroke-width='9'/><circle cx='96' cy='96' r='34' fill='none' stroke='white' stroke-width='9'/><circle cx='96' cy='96' r='10' fill='white'/></svg>`),sizes:"192x192",type:"image/svg+xml"}]
 };
 const _mb=new Blob([JSON.stringify(manifestData)],{type:'application/json'});
 const _ml=document.createElement('link');_ml.rel='manifest';_ml.href=URL.createObjectURL(_mb);
@@ -367,7 +367,7 @@ textarea.form-input{min-height:110px;resize:vertical;line-height:1.6}
       </div>
     </div>
     <div class="data-card">
-      <div class="data-card-header"><h3>Importer</h3><p>Restaurez une sauvegarde <strong>.json</strong> exportée depuis SportLog.</p></div>
+      <div class="data-card-header"><h3>Importer</h3><p>Restaurez une sauvegarde <strong>.json</strong> exportée depuis Focus.</p></div>
       <div class="data-card-body">
         <div class="import-zone" onclick="document.getElementById('file-input').click()">
           <div class="icon">📂</div>
@@ -1220,7 +1220,7 @@ function exportData(){
   const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
-  a.href=url;a.download=`sportlog-${new Date().toISOString().slice(0,10)}.json`;
+  a.href=url;a.download=`focus-${new Date().toISOString().slice(0,10)}.json`;
   document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
   showToast('Sauvegarde téléchargée');
 }
@@ -1369,7 +1369,7 @@ function init(){
 init();
 
 /* SERVICE WORKER */
-const swCode=`const C='sportlog-v4';self.addEventListener('install',e=>{self.skipWaiting()});self.addEventListener('activate',e=>{e.waitUntil(clients.claim())});self.addEventListener('fetch',e=>{e.respondWith(caches.open(C).then(c=>c.match(e.request).then(r=>{const f=fetch(e.request).then(res=>{if(res&&res.status===200)c.put(e.request,res.clone());return res}).catch(()=>r);return r||f})))})`;
+const swCode=`const C='focus-v1';self.addEventListener('install',e=>{self.skipWaiting()});self.addEventListener('activate',e=>{e.waitUntil(clients.claim())});self.addEventListener('fetch',e=>{e.respondWith(caches.open(C).then(c=>c.match(e.request).then(r=>{const f=fetch(e.request).then(res=>{if(res&&res.status===200)c.put(e.request,res.clone());return res}).catch(()=>r);return r||f})))})`;
 if('serviceWorker' in navigator)navigator.serviceWorker.register(URL.createObjectURL(new Blob([swCode],{type:'application/javascript'}))).catch(()=>{});
 
 /* INSTALL BANNER */
@@ -1379,12 +1379,12 @@ function showInstallBanner(){
   if(document.getElementById('install-banner'))return;
   const b=document.createElement('div');b.id='install-banner';
   b.style.cssText='position:fixed;bottom:72px;left:50%;transform:translateX(-50%);width:calc(100% - 32px);max-width:448px;background:#2d6a4f;color:#fff;border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:12px;z-index:400;box-shadow:0 4px 20px rgba(0,0,0,.25);font-family:-apple-system,sans-serif';
-  b.innerHTML='<span style="font-size:26px">📲</span><div style="flex:1"><div style="font-size:14px;font-weight:600">Installer SportLog</div><div style="font-size:12px;opacity:.85">Accès rapide depuis votre écran d\'accueil</div></div><button onclick="installApp()" style="background:#fff;color:#2d6a4f;border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer">Installer</button><button onclick="dismissBanner()" style="background:none;border:none;color:#fff;font-size:20px;cursor:pointer;padding:0 4px">×</button>';
+  b.innerHTML='<span style="font-size:26px">📲</span><div style="flex:1"><div style="font-size:14px;font-weight:600">Installer Focus</div><div style="font-size:12px;opacity:.85">Accès rapide depuis votre écran d\'accueil</div></div><button onclick="installApp()" style="background:#fff;color:#2d6a4f;border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer">Installer</button><button onclick="dismissBanner()" style="background:none;border:none;color:#fff;font-size:20px;cursor:pointer;padding:0 4px">×</button>';
   document.body.appendChild(b);
 }
 function installApp(){if(!deferredPrompt)return;deferredPrompt.prompt();deferredPrompt.userChoice.then(()=>{deferredPrompt=null;dismissBanner()})}
 function dismissBanner(){const b=document.getElementById('install-banner');if(b)b.remove()}
-window.addEventListener('appinstalled',()=>{dismissBanner();showToast('SportLog installé !')});
+window.addEventListener('appinstalled',()=>{dismissBanner();showToast('Focus installé !')});
 </script>
 </body>
 </html>
