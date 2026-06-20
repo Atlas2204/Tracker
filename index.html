@@ -382,8 +382,8 @@ textarea.form-input{min-height:110px;resize:vertical;line-height:1.6}
     <div class="modal-body">
       <div id="modal-note-date" style="font-size:13px;color:var(--text2);margin-bottom:14px"></div>
 
-      <!-- Toggle mode template -->
-      <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:4px 12px 4px 14px;margin-bottom:14px;border:.5px solid var(--border)">
+      <!-- Toggle mode template (masqué : géré désormais via le toggle de l'agenda) -->
+      <div style="display:none">
         <div class="toggle-row" onclick="toggleNoteMode()">
           <div class="toggle-track" id="note-toggle-track"><div class="toggle-thumb"></div></div>
           <span class="toggle-label" id="note-toggle-label">Utiliser un modèle / séance</span>
@@ -751,28 +751,28 @@ function renderAgendaDayPanel(){
       </div>
       <span class="day-check-label">${isFuture?'Jour à venir':(isChecked?'Objectif réussi ce jour':'Marquer comme réussi')}</span>
     </div>
-    <div style="padding:12px 16px;border-bottom:.5px solid var(--border)">
-      <div class="toggle-row" style="padding:0" onclick="toggleObjTplMode('${agendaObjId}')">
-        <div class="toggle-track${tplModeOn?' on':''}" id="agenda-tplmode-track"><div class="toggle-thumb"></div></div>
-        <span class="toggle-label" id="agenda-tplmode-label" style="${tplModeOn?'color:var(--accent)':''}">${tplModeOn?'Utilisation de modèles activée':'Utiliser des modèles'}</span>
-      </div>
-    </div>
     <div class="day-note-section">
-      <div class="day-note-label">${isTplMode?'📋 Note (modèle)':'Note / Valeur'}</div>
+      <div class="day-note-label">Note / Valeur</div>
       ${noteText
         ?`<div class="day-note-text">${escHtml(noteText)}</div>
            <div class="day-note-actions">
              <button class="btn btn-secondary btn-sm" onclick="openNoteModal(true)">✏️ Modifier</button>
              <button class="btn btn-danger btn-sm" onclick="deleteNote()">🗑</button>
-             ${tplModeOn?`<button class="btn btn-ghost btn-sm" onclick="openObjTemplatesModal()">📋 Gérer les modèles</button>`:''}
            </div>`
         :`<div class="day-note-empty">Ajouter une note, une valeur…</div>
            <div class="day-note-actions">
              <button class="btn btn-secondary btn-sm" onclick="openNoteModal(false)">+ Ajouter une note</button>
-             ${tplModeOn?`<button class="btn btn-secondary btn-sm" onclick="openNotePicker('template')">📋 Depuis modèle</button>
-             <button class="btn btn-ghost btn-sm" onclick="openObjTemplatesModal()">⚙️ Gérer les modèles</button>`:''}
            </div>`
       }
+    </div>
+    <div style="padding:12px 16px;display:flex;align-items:center;justify-content:space-between;border-top:.5px solid var(--border)">
+      <div class="toggle-row" style="padding:0" onclick="toggleObjTplMode('${agendaObjId}')">
+        <div class="toggle-track${tplModeOn?' on':''}" id="agenda-tplmode-track"><div class="toggle-thumb"></div></div>
+        <span class="toggle-label" id="agenda-tplmode-label" style="${tplModeOn?'color:var(--accent)':''}">Template ${tplModeOn?'activé':'désactivé'}</span>
+      </div>
+      ${tplModeOn?`<button class="icon-btn" onclick="openObjTemplatesModal()" title="Gérer les modèles" style="background:none;border:none;cursor:pointer;color:var(--accent);padding:4px;display:flex;align-items:center">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
+      </button>`:''}
     </div>`;
 }
 
@@ -798,12 +798,16 @@ function openNoteModal(editing){
   const entry=(allEntries[agendaObjId]||{})[agendaSelDate];
   const existing=entry?entry.text:'';
   noteModalIsTemplate=entry?!!entry.isTemplate:getObjTplModeOn(agendaObjId);
+  const tplModeOn=getObjTplModeOn(agendaObjId);
 
   document.getElementById('modal-note-title').textContent=editing?'Modifier la note':'Ajouter une note';
   document.getElementById('modal-note-date').textContent=capFirst(fmtDate(agendaSelDate));
   document.getElementById('note-text').value=existing;
   document.getElementById('btn-delete-note').style.display=existing?'flex':'none';
-  setNoteModeUI(noteModalIsTemplate);
+  document.getElementById('note-field-label').textContent='Note / Valeur';
+  document.getElementById('note-template-btns').style.display=tplModeOn?'flex':'none';
+  const createWrap=document.getElementById('note-create-tpl-wrap');
+  if(createWrap)createWrap.style.display=tplModeOn?'block':'none';
   openModal('modal-note');
 }
 
